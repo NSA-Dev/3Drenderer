@@ -19,7 +19,6 @@ void update(void);
 void render(void); 
 
 int main(void) {
-
     isRunning = init_win();
     
     setup();
@@ -29,6 +28,7 @@ int main(void) {
        update();
        render();  
     }
+    
     return 0;
 }
 
@@ -42,11 +42,13 @@ bool init_win(void) {
      * 3. attach renderer instance to the window
      * */
     
-
+    /* Initialization */
     if(SDL_Init(SDL_INIT_EVERYTHING)!= 0) {
         fprintf(stderr, "Error intitalizing SDL.\n");
         return false; 
     }
+
+    /* Handle window creation */
                                     // ARGS:
     window = SDL_CreateWindow(
             NULL,                   // winTitle
@@ -55,20 +57,21 @@ bool init_win(void) {
             WIN_W,                  // width
             WIN_H,                  // height
             SDL_WINDOW_BORDERLESS   // winMode                    
-            );
+    );
+    
     if(!window) {
-        fprintf(stderr, "Error creating SDL window\n");
+        fprintf(stderr, "Error creating SDL window.\n");
         return false; 
     }   
-   
+    /* Handle renderer creation */
     renderer = SDL_CreateRenderer(
             window,                 // winInstance
-            -1,                     // the index of display device -1 default
+            -1,                     // the index of a display device -1 default
             0                       // extra rend flags 
-            );
-
+    );
     if(!renderer) {
         fprintf(stderr, "Error creating SDL renderer.\n");
+        return false;
     }   
     
     return true; 
@@ -77,10 +80,11 @@ bool init_win(void) {
 void setup(void) {
     ;
 }
+
 void process_input(void) {
     SDL_Event event; 
+    SDL_PollEvent(&event);  // needs a pointer to the event
     
-    SDL_PollEvent(&event);  // needs pointer to the event
     switch(event.type) {
         case SDL_QUIT:
             isRunning = false;
@@ -90,12 +94,12 @@ void process_input(void) {
                 isRunning = false;
             break; 
     }
-
-
 }
+
 void update(void) {
     ;
 }
+
 void render(void) {
     SDL_SetRenderDrawColor(
             renderer,       // renderer instance
