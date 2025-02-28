@@ -1,0 +1,16 @@
+// colors.h
+#ifndef COLORS_H
+#define COLORS_H
+
+typedef enum {
+    COLOR_RED = 0xFF0000,
+    COLOR_PURPLE = 0xA020F0,
+    COLOR_GREEN = 0xFF00FF00,
+    COLOR_YELLOW = 0xFFFFFF00,
+    COLOR_BLACK = 0xFF000000,
+    COLOR_GRAY = 0xFFFFFFFF,
+    COLOR_ORANGE = 0xFFFFA500,
+    COLOR_BLUE = 0xFF0000FF
+} Color;
+
+#endif // COLORS_H
