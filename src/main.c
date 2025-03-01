@@ -10,22 +10,28 @@
 /* Global scope */
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
-uint32_t* frame_buffer = NULL; 
+SDL_Texture* framebuffer_texture = NULL; 
+uint32_t* framebuffer = NULL; 
 bool is_running = false; 
 /* End of globals */
 
 
 bool init_win(void); 
-void setup(void);
+bool setup(void);
 void process_input(void);
 void update(void);
 void render(void);
-void free_resources(void);
+void free_resources(void); 
+void clear_framebuffer(uint32_t color); 
+void render_framebuffer(void);
 
 int main(void) {
     is_running = init_win();
     
-    setup();
+    if(!setup()) {
+        fprintf(stderr, "Setup failed. Shutting down.\n");
+        return 1;
+    };
 
     while(is_running) {
        process_input();
@@ -82,13 +88,28 @@ bool init_win(void) {
     return true; 
 }
 
-void setup(void) {
-    // Allocate framBuffer
-    frame_buffer = (uint32_t*)malloc(sizeof(uint32_t) * WIN_W * WIN_H);
-    if(frame_buffer == NULL) {
-        fprintf(stderr, "Failed to allocate frame buffer memory.\n");
-        return;  
-    } 
+bool setup(void) {
+    // Allocate framebuffer
+    framebuffer = (uint32_t*)malloc(sizeof(uint32_t) * WIN_W * WIN_H);
+    if(!framebuffer) {
+        fprintf(stderr, "Failed to allocate framebuffer memory.\n");
+        return false;  
+    }
+
+   //framebuffer texture
+   framebuffer_texture = SDL_CreateTexture(
+        renderer,           // renderer responsible 
+        SDL_PIXELFORMAT_ARGB8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        WIN_W,
+        WIN_H
+   );
+   if(!framebuffer_texture) { 
+        fprintf(stderr, "Failed to allocate SDL_Texture.\n");
+        return false;
+   }
+
+    return true; 
 }
 
 void process_input(void) {
@@ -119,12 +140,32 @@ void render(void) {
             255             // A            
             );
     SDL_RenderClear(renderer);
+    render_framebuffer();
+    clear_framebuffer(COLOR_BLUE);
     SDL_RenderPresent(renderer); 
 }
 
 void free_resources(void) {
-    if(frame_buffer != NULL) free(frame_buffer); 
+    if(framebuffer != NULL) free(framebuffer); 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit(); 
+}
+
+
+void clear_framebuffer(uint32_t color) {
+    for(int i = 0; i < (WIN_W * WIN_H); i++) {
+        framebuffer[i] = color; 
+    } 
+}
+
+void render_framebuffer(void) {
+    SDL_UpdateTexture(
+        framebuffer_texture,
+        NULL,
+        framebuffer,
+       (int)(WIN_W * sizeof(uint32_t))  // (int) typecast for SDL
+    );
+
+    SDL_RenderCopy(renderer, framebuffer_texture, NULL, NULL);
 }
