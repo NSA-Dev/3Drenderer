@@ -4,15 +4,16 @@
 #include <SDL2/SDL.h>
 #include "colors.h"
 
-#define WIN_W 1920
-#define WIN_H 1080
+
 
 /* Global scope */
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 SDL_Texture* framebuffer_texture = NULL; 
 uint32_t* framebuffer = NULL; 
-bool is_running = false; 
+bool is_running = false;
+int win_w = 800;    // fallback value
+int win_h = 600;    // fallback value
 /* End of globals */
 
 
@@ -59,14 +60,19 @@ bool init_win(void) {
         return false; 
     }
 
+    /* Query display's video mode from main(0) display */
+    SDL_DisplayMode display_mode;
+    SDL_GetCurrentDisplayMode(0, &display_mode);
+    win_w = display_mode.w;
+    win_h = display_mode.h;
+
     /* Handle window creation */
-                                    // ARGS:
     window = SDL_CreateWindow(
             NULL,                   // winTitle
             SDL_WINDOWPOS_CENTERED, // pos X
             SDL_WINDOWPOS_CENTERED, // pos Y
-            WIN_W,                  // width
-            WIN_H,                  // height
+            win_w,                  // width
+            win_h,                  // height
             SDL_WINDOW_BORDERLESS   // winMode                    
     );
     
@@ -90,7 +96,7 @@ bool init_win(void) {
 
 bool setup(void) {
     // Allocate framebuffer
-    framebuffer = (uint32_t*)malloc(sizeof(uint32_t) * WIN_W * WIN_H);
+    framebuffer = (uint32_t*)malloc(sizeof(uint32_t) * win_w * win_h);
     if(!framebuffer) {
         fprintf(stderr, "Failed to allocate framebuffer memory.\n");
         return false;  
@@ -101,8 +107,8 @@ bool setup(void) {
         renderer,           // renderer responsible 
         SDL_PIXELFORMAT_ARGB8888,
         SDL_TEXTUREACCESS_STREAMING,
-        WIN_W,
-        WIN_H
+        win_w,
+        win_h
    );
    if(!framebuffer_texture) { 
         fprintf(stderr, "Failed to allocate SDL_Texture.\n");
@@ -154,7 +160,7 @@ void free_resources(void) {
 
 
 void clear_framebuffer(uint32_t color) {
-    for(int i = 0; i < (WIN_W * WIN_H); i++) {
+    for(int i = 0; i < (win_w * win_h); i++) {
         framebuffer[i] = color; 
     } 
 }
@@ -164,7 +170,7 @@ void render_framebuffer(void) {
         framebuffer_texture,
         NULL,
         framebuffer,
-       (int)(WIN_W * sizeof(uint32_t))  // (int) typecast for SDL
+       (int)(win_w * sizeof(uint32_t))  // (int) typecast for SDL
     );
 
     SDL_RenderCopy(renderer, framebuffer_texture, NULL, NULL);
