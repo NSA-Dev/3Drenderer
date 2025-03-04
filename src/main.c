@@ -22,7 +22,8 @@ bool setup(void);
 void process_input(void);
 void update(void);
 void render(void);
-void free_resources(void); 
+void free_resources(void);
+void draw_grid(void);
 void clear_framebuffer(uint32_t color); 
 void render_framebuffer(void);
 
@@ -91,6 +92,8 @@ bool init_win(void) {
         return false;
     }   
     
+    /* True fullscreen mode */
+   // SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN); 
     return true; 
 }
 
@@ -146,8 +149,9 @@ void render(void) {
             255             // A            
             );
     SDL_RenderClear(renderer);
+    draw_grid();
     render_framebuffer();
-    clear_framebuffer(COLOR_BLUE);
+    clear_framebuffer(COLOR_BLACK);
     SDL_RenderPresent(renderer); 
 }
 
@@ -158,7 +162,14 @@ void free_resources(void) {
     SDL_Quit(); 
 }
 
-
+void draw_grid(void) {
+    // TODO IMPLEMENT GRID
+    for(int row = 0; row <  win_h; row++) {
+        for(int col = 0; col < win_w; col++) {
+            if(row % 10 == 0 || col % 10 == 0) framebuffer[(win_w*row)+col] = COLOR_GRAY;
+        }
+    }
+}
 void clear_framebuffer(uint32_t color) {
     for(int i = 0; i < (win_w * win_h); i++) {
         framebuffer[i] = color; 
