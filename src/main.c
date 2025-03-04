@@ -23,7 +23,8 @@ void process_input(void);
 void update(void);
 void render(void);
 void free_resources(void);
-void draw_grid(void);
+void draw_grid(int spacing);
+void draw_rect(int x, int y, int w, int h, uint32_t color);
 void clear_framebuffer(uint32_t color); 
 void render_framebuffer(void);
 
@@ -149,7 +150,8 @@ void render(void) {
             255             // A            
             );
     SDL_RenderClear(renderer);
-    draw_grid();
+    draw_grid(10);          // grid spacing
+    draw_rect(800, 800, 200, 100, COLOR_ORANGE); // For testing
     render_framebuffer();
     clear_framebuffer(COLOR_BLACK);
     SDL_RenderPresent(renderer); 
@@ -162,11 +164,18 @@ void free_resources(void) {
     SDL_Quit(); 
 }
 
-void draw_grid(void) {
-    // TODO IMPLEMENT GRID
-    for(int row = 0; row <  win_h; row++) {
-        for(int col = 0; col < win_w; col++) {
-            if(row % 10 == 0 || col % 10 == 0) framebuffer[(win_w*row)+col] = COLOR_GRAY;
+void draw_grid(int spacing) {
+    // draws a dot grid
+    for(int row = 0; row <  win_h; row += spacing) {
+        for(int col = 0; col < win_w; col += spacing) {
+            framebuffer[(win_w*row)+col] = COLOR_LIGHT_GRAY;
+        }
+    }
+}
+void draw_rect(int x, int y, int w, int h, uint32_t color) {
+    for(int row = y; row < y + h; row++) {
+        for(int col = x; col < x + w; col++) {
+            framebuffer[(win_w*row)+col] = color; 
         }
     }
 }
