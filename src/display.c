@@ -67,7 +67,7 @@ void draw_grid(int spacing, uint32_t color) {
     }
 }
 void draw_pixel(int x, int y, uint32_t color) {
-    if(x < win_w && y < win_h) {
+    if(x >= 0 && x < win_w && y >= 0 && y < win_h) {
     framebuffer[(win_w*y)+x] = color;
     } 
 }
