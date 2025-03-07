@@ -4,7 +4,7 @@
 #include <SDL2/SDL.h>
 #include "colors.h"
 #include "display.h"
-
+#include "vector.h"
 
 
 /* Global scope */  
@@ -32,6 +32,10 @@ int main(void) {
     }
     
     free_resources();
+    // vector test
+    vec2_t vector = {3.5, 4.5};
+    printf("Vector created %.1f %.1f\n", vector.x, vector.y);
+
     return 0;
 }
 
