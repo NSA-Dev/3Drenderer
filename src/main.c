@@ -6,9 +6,15 @@
 #include "display.h"
 #include "vector.h"
 
+#define  N_POINTS (9*9*9)  // Number of cube coordinates
+
 
 /* Global scope */  
-bool is_running = false; 
+bool is_running = false;
+float fov_factor = 128;
+/*  vector array declr  */
+vec3_t cube_points[N_POINTS];
+vec2_t projected_points[N_POINTS]; 
 /* End of globals */
 
  
@@ -32,9 +38,6 @@ int main(void) {
     }
     
     free_resources();
-    // vector test
-    vec2_t vector = {3.5, 4.5};
-    printf("Vector created %.1f %.1f\n", vector.x, vector.y);
 
     return 0;
 }
@@ -61,6 +64,20 @@ bool setup(void) {
         return false;
    }
 
+   // 9x9x9 cube from -1 to 1
+   int  current_point = 0;  
+   for(float x = -1; x <= 1; x += 0.25) {
+        for(float y = -1; y <= 1; y += 0.25) {
+            for(float z = -1; z <= 1; z += 0.25) {
+                vec3_t new_point = {.x = x*fov_factor, 
+                                    .y = y*fov_factor, 
+                                    .z = z*fov_factor
+                                   };
+                cube_points[current_point++] = new_point;
+            }
+        }
+   }
+
     return true; 
 }
 
@@ -80,20 +97,21 @@ void process_input(void) {
 }
 
 void update(void) {
-    /* TODO frame update function */
+    for (int i = 0; i < N_POINTS; i++) {
+       vec2_t projected =  project(&cube_points[i]);
+       projected_points[i] = projected; 
+    }
 }
 
 void render(void) {
-    SDL_SetRenderDrawColor(
-            renderer,       // renderer instance
-            255,            // R
-            0,              // G
-            0,              // B
-            255             // A            
-            );
-    SDL_RenderClear(renderer);
     draw_grid(10, COLOR_LIGHT_GRAY);          // grid spacing
-    draw_rect(300, 200, 300, 150, COLOR_ORANGE); // For testing
+    for(int i = 0; i < N_POINTS; i++) {
+        draw_rect(projected_points[i].x + (win_w/2), 
+        projected_points[i].y + (win_h/2), 
+        4, 
+        4, 
+        COLOR_ORANGE);
+    }
     render_framebuffer();
     clear_framebuffer(COLOR_BLACK);
     SDL_RenderPresent(renderer); 
