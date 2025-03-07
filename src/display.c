@@ -62,7 +62,7 @@ void draw_grid(int spacing, uint32_t color) {
     // draws a dot grid
     for(int row = 0; row <  win_h; row += spacing) {
         for(int col = 0; col < win_w; col += spacing) {
-            framebuffer[(win_w*row)+col] = color;
+           draw_pixel(col, row, color); 
         }
     }
 }
@@ -74,7 +74,7 @@ void draw_pixel(int x, int y, uint32_t color) {
 void draw_rect(int x, int y, int w, int h, uint32_t color) {
     for(int row = y; row < y + h; row++) {
         for(int col = x; col < x + w; col++) {
-            framebuffer[(win_w*row)+col] = color; 
+           draw_pixel(col, row, color);  
         }
     }
 }
