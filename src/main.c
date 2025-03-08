@@ -11,10 +11,11 @@
 
 /* Global scope */  
 bool is_running = false;
-float fov_factor = 128;
-/*  vector array declr  */
+float fov_factor = 640;
+/*  vector  declr  */
 vec3_t cube_points[N_POINTS];
-vec2_t projected_points[N_POINTS]; 
+vec2_t projected_points[N_POINTS];
+vec3_t camera_pos = {.x = 0, .y = 0, .z = -5};
 /* End of globals */
 
  
@@ -69,9 +70,12 @@ bool setup(void) {
    for(float x = -1; x <= 1; x += 0.25) {
         for(float y = -1; y <= 1; y += 0.25) {
             for(float z = -1; z <= 1; z += 0.25) {
+                /* note: fov and camera_pos conceptually should be in update 
+                 * this is a major sticking point as setup() runs only once
+                 * consider moving project() away from vector.c  */
                 vec3_t new_point = {.x = x*fov_factor, 
                                     .y = y*fov_factor, 
-                                    .z = z*fov_factor
+                                    .z = z - camera_pos.z                                                                     
                                    };
                 cube_points[current_point++] = new_point;
             }
@@ -97,7 +101,7 @@ void process_input(void) {
 }
 
 void update(void) {
-    for (int i = 0; i < N_POINTS; i++) {
+    for (int i = 0; i < N_POINTS; i++) { 
        vec2_t projected =  project(&cube_points[i]);
        projected_points[i] = projected; 
     }
