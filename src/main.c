@@ -7,7 +7,7 @@
 #include "vector.h"
 
 #define  N_POINTS (9*9*9)  // Number of cube coordinates
-
+#define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 
 /* Global scope */  
 bool is_running = false;
@@ -15,7 +15,8 @@ float fov_factor = 640;
 /*  vector  declr  */
 vec3_t cube_points[N_POINTS];
 vec2_t projected_points[N_POINTS];
-vec3_t camera_pos = {.x = 0, .y = 0, .z = -5};
+vec3_t camera_pos = {.x = 0, .y = 0, .z = 5};
+vec3_t cube_rotation = {.x = 0, .y = 0, .z = 0}; 
 /* End of globals */
 
  
@@ -70,13 +71,7 @@ bool setup(void) {
    for(float x = -1; x <= 1; x += 0.25) {
         for(float y = -1; y <= 1; y += 0.25) {
             for(float z = -1; z <= 1; z += 0.25) {
-                /* note: fov and camera_pos conceptually should be in update 
-                 * this is a major sticking point as setup() runs only once
-                 * consider moving project() away from vector.c  */
-                vec3_t new_point = {.x = x*fov_factor, 
-                                    .y = y*fov_factor, 
-                                    .z = z - camera_pos.z                                                                     
-                                   };
+                vec3_t new_point = {.x = x, .y = y, .z = z};
                 cube_points[current_point++] = new_point;
             }
         }
@@ -96,21 +91,50 @@ void process_input(void) {
         case SDL_KEYDOWN:
             if(event.key.keysym.sym == SDLK_ESCAPE)
                 is_running = false;
+            else if (event.key.keysym.sym == SDLK_LEFT)
+                cube_rotation.y += 0.1;
+            else if(event.key.keysym.sym == SDLK_RIGHT)
+                cube_rotation.y -= 0.1;
+            else if (event.key.keysym.sym == SDLK_UP)
+                cube_rotation.x += 0.1;
+            else if(event.key.keysym.sym == SDLK_DOWN)
+                cube_rotation.x -= 0.1;
             break; 
     }
 }
 
+// TEST FUNCTION
+vec2_t t_project(vec3_t* p) {
+    vec2_t projected = {
+        .x = (fov_factor * p->x) / p->z,
+        .y = (fov_factor * p->y) / p->z
+    };
+    return projected;
+}
+
 void update(void) {
     for (int i = 0; i < N_POINTS; i++) { 
-       vec2_t projected =  project(&cube_points[i]);
+        vec3_t temp = cube_points[i];
+        if(cube_rotation.y != 0) vec3_rotate_y(&temp, cube_rotation.y);
+        if(cube_rotation.x != 0) vec3_rotate_x(&temp, cube_rotation.x);
+        // factor the camera in
+       temp.z -= camera_pos.z;
+       //project as normal
+       vec2_t projected =  t_project(&temp);
        projected_points[i] = projected; 
     }
+    // check rotations for overflow
+    if(cube_rotation.x > R_LIMIT) cube_rotation.x -= R_LIMIT;
+    if(cube_rotation.x < R_LIMIT) cube_rotation.x += R_LIMIT;
+    if(cube_rotation.y > R_LIMIT) cube_rotation.y -= R_LIMIT;
+    if(cube_rotation.y < R_LIMIT) cube_rotation.y += R_LIMIT;   
 }
 
 void render(void) {
     draw_grid(10, COLOR_LIGHT_GRAY);          // grid spacing
     for(int i = 0; i < N_POINTS; i++) {
-        draw_rect(projected_points[i].x + (win_w/2), 
+        draw_rect(
+        projected_points[i].x + (win_w/2), 
         projected_points[i].y + (win_h/2), 
         4, 
         4, 
