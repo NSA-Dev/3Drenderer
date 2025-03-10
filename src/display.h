@@ -5,7 +5,7 @@
 #include <SDL2/SDL.h>
 
 
-#define FPS 30
+#define FPS 60
 #define FTT (1000 / FPS)
 /* global declarations*/
 extern SDL_Window* window;
