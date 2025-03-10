@@ -5,18 +5,19 @@
 #include "colors.h"
 #include "display.h"
 #include "vector.h"
-
+#include "mesh.h"
 
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 
-  
+triangle_t triangles_to_render[N_MESH_FACES];
+
+
 bool is_running = false;
 int previous_frame_time = 0; // ms
 float fov_factor = 640;
 /*  vector  declr  */
 vec3_t camera_pos = {.x = 0, .y = 0, .z = 5};
-vec3_t cube_rotation = {.x = 0, .y = 0, .z = 0}; 
-/* End of globals */
+vec3_t cube_rotation = {.x = 0, .y = 0, .z = 0};
 
  
 bool setup(void);
@@ -101,21 +102,53 @@ vec2_t project(vec3_t* p) {
 }
 
 void update(void) {
-    //While not enough ticks passed, lock the update until true
+    // FPS sync.  While not enough ticks passed (see FTT in display.h), delay the update
     int time_to_wait = FTT - (SDL_GetTicks() - previous_frame_time);
     if(time_to_wait > 0) SDL_Delay(time_to_wait);     
     previous_frame_time = SDL_GetTicks(); 
 
-    for (int i = 0; i < N_POINTS; i++) { 
-        vec3_t temp = cube_points[i];
-        if(cube_rotation.y != 0) vec3_rotate_y(&temp, cube_rotation.y);
-        if(cube_rotation.x != 0) vec3_rotate_x(&temp, cube_rotation.x);
-        // factor the camera in
-       temp.z -= camera_pos.z;
-       //project as normal
-       vec2_t projected =  project(&temp);
-       projected_points[i] = projected; 
+    for(int i = 0; i < N_MESH_FACES; i++) {
+        face_t mesh_face = mesh_faces[i];
+        
+        vec3_t face_verts[3]; 
+        // look inside the mesh_face.(a/b/c)
+        // find index corresponding to a
+        // grab data with the index from mesh_verts
+        // -1 compensates for index  offset
+        face_verts[0] = mesh_verts[mesh_face.a - 1];
+        face_verts[1] = mesh_verts[mesh_face.b - 1];
+        face_verts[2] = mesh_verts[mesh_face.c - 1];
+        
+        // prepare a temp triangle_t for passing into triangles_to_render[]
+        // line 138
+        triangle_t projected_triangle; 
+
+        // transform recieved verts
+        for(int j = 0; j < 3; j++) {
+            vec3_t temp = face_verts[j]; 
+        
+            if(cube_rotation.x != 0) vec3_rotate_x(&temp, cube_rotation.x);
+            if(cube_rotation.y != 0) vec3_rotate_y(&temp, cube_rotation.y);
+            if(cube_rotation.z != 0) vec3_rotate_z(&temp, cube_rotation.z);
+            
+            // factor in camera depth
+            temp.z -= camera_pos.z;
+
+            // project (perspective divide)
+            vec2_t projected = project(&temp);
+           
+            // scale and translate to the middle of the screen
+            projected.x += (win_w/2);
+            projected.y += (win_h/2); 
+
+            // pass into the array
+            projected_triangle.points[j] = projected; 
+       } 
+        // save calculated data for rendering
+        triangles_to_render[i] = projected_triangle; 
     }
+
+
     // check rotations for overflow
     if(cube_rotation.x > R_LIMIT) cube_rotation.x -= R_LIMIT;
     if(cube_rotation.x < R_LIMIT) cube_rotation.x += R_LIMIT;
@@ -125,15 +158,12 @@ void update(void) {
 
 void render(void) {
     draw_grid(10, COLOR_LIGHT_GRAY);          // grid spacing
-   /*
-    for(int i = 0; i < N_POINTS; i++) {
-        draw_rect(
-        projected_points[i].x + (win_w/2), 
-        projected_points[i].y + (win_h/2), 
-        4, 
-        4, 
-        COLOR_ORANGE);
-    } <<<<< Legacy cube rendering */
+    for(int i = 0; i < N_MESH_FACES; i++) {
+        triangle_t triangle = triangles_to_render[i]; 
+        draw_rect(triangle.points[0].x, triangle.points[0].y, 3, 3, COLOR_GREEN); 
+        draw_rect(triangle.points[1].x, triangle.points[1].y, 3, 3, COLOR_GREEN); 
+        draw_rect(triangle.points[2].x, triangle.points[2].y, 3, 3, COLOR_GREEN);
+    } 
     render_framebuffer();
     clear_framebuffer(COLOR_BLACK);
     SDL_RenderPresent(renderer); 
