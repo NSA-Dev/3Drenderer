@@ -2,9 +2,6 @@
 #include "vector.h"
 
 
-vec2_t project (vec3_t* point) {
-        return (vec2_t) {.x = point->x / point->z , .y = point->y / point->z}; 
-}
 
 void vec3_rotate_x(vec3_t* v, float angle) {
    float r_cos = cos(angle);
