@@ -115,8 +115,8 @@ vec2_t t_project(vec3_t* p) {
 
 void update(void) {
     //While not enough ticks passed, lock the update until true
-    while(!SDL_TICKS_PASSED(SDL_GetTicks(), previous_frame_time + FTT ));
-    
+    int time_to_wait = FTT - (SDL_GetTicks() - previous_frame_time);
+    if(time_to_wait > 0) SDL_Delay(time_to_wait);     
     previous_frame_time = SDL_GetTicks(); 
 
     for (int i = 0; i < N_POINTS; i++) { 
