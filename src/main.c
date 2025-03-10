@@ -11,6 +11,7 @@
 
 /* Global scope */  
 bool is_running = false;
+int previous_frame_time = 0; // ms
 float fov_factor = 640;
 /*  vector  declr  */
 vec3_t cube_points[N_POINTS];
@@ -113,6 +114,11 @@ vec2_t t_project(vec3_t* p) {
 }
 
 void update(void) {
+    //While not enough ticks passed, lock the update until true
+    while(!SDL_TICKS_PASSED(SDL_GetTicks(), previous_frame_time + FTT ));
+    
+    previous_frame_time = SDL_GetTicks(); 
+
     for (int i = 0; i < N_POINTS; i++) { 
         vec3_t temp = cube_points[i];
         if(cube_rotation.y != 0) vec3_rotate_y(&temp, cube_rotation.y);
