@@ -6,16 +6,14 @@
 #include "display.h"
 #include "vector.h"
 
-#define  N_POINTS (9*9*9)  // Number of cube coordinates
+
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 
-/* Global scope */  
+  
 bool is_running = false;
 int previous_frame_time = 0; // ms
 float fov_factor = 640;
 /*  vector  declr  */
-vec3_t cube_points[N_POINTS];
-vec2_t projected_points[N_POINTS];
 vec3_t camera_pos = {.x = 0, .y = 0, .z = 5};
 vec3_t cube_rotation = {.x = 0, .y = 0, .z = 0}; 
 /* End of globals */
@@ -67,17 +65,6 @@ bool setup(void) {
         return false;
    }
 
-   // 9x9x9 cube from -1 to 1
-   int  current_point = 0;  
-   for(float x = -1; x <= 1; x += 0.25) {
-        for(float y = -1; y <= 1; y += 0.25) {
-            for(float z = -1; z <= 1; z += 0.25) {
-                vec3_t new_point = {.x = x, .y = y, .z = z};
-                cube_points[current_point++] = new_point;
-            }
-        }
-   }
-
     return true; 
 }
 
@@ -104,8 +91,8 @@ void process_input(void) {
     }
 }
 
-// TEST FUNCTION
-vec2_t t_project(vec3_t* p) {
+// remains in main.c for now
+vec2_t project(vec3_t* p) {
     vec2_t projected = {
         .x = (fov_factor * p->x) / p->z,
         .y = (fov_factor * p->y) / p->z
@@ -126,7 +113,7 @@ void update(void) {
         // factor the camera in
        temp.z -= camera_pos.z;
        //project as normal
-       vec2_t projected =  t_project(&temp);
+       vec2_t projected =  project(&temp);
        projected_points[i] = projected; 
     }
     // check rotations for overflow
@@ -138,6 +125,7 @@ void update(void) {
 
 void render(void) {
     draw_grid(10, COLOR_LIGHT_GRAY);          // grid spacing
+   /*
     for(int i = 0; i < N_POINTS; i++) {
         draw_rect(
         projected_points[i].x + (win_w/2), 
@@ -145,7 +133,7 @@ void render(void) {
         4, 
         4, 
         COLOR_ORANGE);
-    }
+    } <<<<< Legacy cube rendering */
     render_framebuffer();
     clear_framebuffer(COLOR_BLACK);
     SDL_RenderPresent(renderer); 
