@@ -71,6 +71,36 @@ void draw_pixel(int x, int y, uint32_t color) {
     framebuffer[(win_w*y)+x] = color;
     } 
 }
+
+void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color) {
+    int dx, dy;
+    int step_x, step_y;
+    int error;
+
+    dx = abs(x2 - x1);
+    dy = abs(y2 - y1);
+
+    error = dx - dy;
+
+    step_x = (x1 < x2) ? 1 : -1;
+    step_y = (y1 < y2) ? 1 : -1;
+   
+    while(x1 != x2 || y1 != y2) {
+        draw_pixel(x1, y1, color);
+        int e2 = 2 * error; // used for balancing
+        if(e2 > -dy) {
+            error -= dy;
+            x1 += step_x;
+        }
+        if (e2 < dx) {
+            error += dx;
+            y1 += step_y;
+        }
+    } 
+ 
+    draw_pixel(x1, y1, color); 
+}
+
 void draw_rect(int x, int y, int w, int h, uint32_t color) {
     for(int row = y; row < y + h; row++) {
         for(int col = x; col < x + w; col++) {
