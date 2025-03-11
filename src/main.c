@@ -24,8 +24,6 @@ bool setup(void);
 void process_input(void);
 void update(void);
 void render(void);
-// TODO mv this to a separate file
-void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color);
 
 int main(void) {
     is_running = init_win();
@@ -165,55 +163,15 @@ void render(void) {
         draw_rect(triangle.points[0].x, triangle.points[0].y, 3, 3, COLOR_GREEN); 
         draw_rect(triangle.points[1].x, triangle.points[1].y, 3, 3, COLOR_GREEN); 
         draw_rect(triangle.points[2].x, triangle.points[2].y, 3, 3, COLOR_GREEN);
-        draw_bresLine(triangle.points[0].x, 
-                      triangle.points[0].y,
-                      triangle.points[1].x, 
-                      triangle.points[1].y,
-                      COLOR_GREEN
-                      );
-        draw_bresLine(triangle.points[1].x, 
-                      triangle.points[1].y,
-                      triangle.points[2].x, 
-                      triangle.points[2].y,
-                      COLOR_GREEN
-                    );
-         draw_bresLine(triangle.points[2].x, 
-                      triangle.points[2].y,
-                      triangle.points[0].x, 
-                      triangle.points[0].y,
-                      COLOR_GREEN
-                      );   
+        draw_triangle(
+                triangle.points[0].x, triangle.points[0].y,
+                triangle.points[1].x, triangle.points[1].y,
+                triangle.points[2].x, triangle.points[2].y,
+                COLOR_GREEN                  
+                ); 
     } 
     render_framebuffer();
     clear_framebuffer(COLOR_BLACK);
     SDL_RenderPresent(renderer); 
 }
 
-void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color) {
-    int dx, dy;
-    int step_x, step_y;
-    int error;
-
-    dx = abs(x2 - x1);
-    dy = abs(y2 - y1);
-
-    error = dx - dy;
-
-    step_x = (x1 < x2) ? 1 : -1;
-    step_y = (y1 < y2) ? 1 : -1;
-   
-    while(x1 != x2 || y1 != y2) {
-        draw_pixel(x1, y1, color);
-        int e2 = 2 * error; // used for balancing
-        if(e2 > -dy) {
-            error -= dy;
-            x1 += step_x;
-        }
-        if (e2 < dx) {
-            error += dx;
-            y1 += step_y;
-        }
-    } 
- 
-    draw_pixel(x1, y1, color); 
-}
