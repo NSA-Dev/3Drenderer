@@ -3,13 +3,22 @@
 #include "vector.h"
 #include "triangle.h"
 
-#define N_MESH_VERT 8
-#define N_MESH_FACES (6 * 2) // each cube face (side) 2 triangles
+#define N_CUBE_VERTS 8
+#define N_CUBE_FACES (6 * 2) // each cube face (side) 2 triangles
 
-extern vec3_t mesh_verts[N_MESH_VERT]; 
+void load_cube_mesh(void);
+
+extern vec3_t cube_verts[N_CUBE_VERTS]; 
 // This one holds vertex indexes to select from mesh_verts[]
-extern face_t mesh_faces[N_MESH_FACES];
+extern face_t cube_faces[N_CUBE_FACES];
 
+typedef struct {
+    vec3_t* verts;
+    face_t* faces;
+    vec3_t rotation;  
+} mesh_t;
 
+// Global mesh
+extern mesh_t mesh;
 
 #endif
