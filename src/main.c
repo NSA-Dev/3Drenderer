@@ -6,10 +6,11 @@
 #include "display.h"
 #include "vector.h"
 #include "mesh.h"
+#include "array.h"
 
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 
-triangle_t triangles_to_render[N_MESH_FACES];
+triangle_t* triangles_to_render = NULL;
 
 
 bool is_running = false;
@@ -107,6 +108,8 @@ void update(void) {
     if(time_to_wait > 0) SDL_Delay(time_to_wait);     
     previous_frame_time = SDL_GetTicks(); 
 
+    triangles_to_render = NULL;
+
     for(int i = 0; i < N_MESH_FACES; i++) {
         face_t mesh_face = mesh_faces[i];
         
@@ -145,7 +148,8 @@ void update(void) {
             projected_triangle.points[j] = projected; 
        } 
         // save calculated data for rendering
-        triangles_to_render[i] = projected_triangle; 
+        //triangles_to_render[i] = projected_triangle; 
+        array_push(triangles_to_render, projected_triangle); 
     }
 
 
@@ -158,7 +162,9 @@ void update(void) {
 
 void render(void) {
     draw_grid(10, COLOR_LIGHT_GRAY);          // grid spacing
-    for(int i = 0; i < N_MESH_FACES; i++) {
+    int polycount = array_length(triangles_to_render);
+
+    for(int i = 0; i < polycount; i++) {
         triangle_t triangle = triangles_to_render[i]; 
         draw_rect(triangle.points[0].x, triangle.points[0].y, 3, 3, COLOR_GREEN); 
         draw_rect(triangle.points[1].x, triangle.points[1].y, 3, 3, COLOR_GREEN); 
@@ -170,6 +176,12 @@ void render(void) {
                 COLOR_GREEN                  
                 ); 
     } 
+
+    array_free(triangles_to_render); 
+    /*  Not a great idea, memory management is  kinda bad 
+     *  for now. Generally, I need to stay away from using malloc 
+     *  and free inside update() and render() loops */
+
     render_framebuffer();
     clear_framebuffer(COLOR_BLACK);
     SDL_RenderPresent(renderer); 
