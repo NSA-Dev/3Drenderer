@@ -19,10 +19,10 @@ extern int win_h;    // fallback value
 bool init_win(void);
 void draw_grid(int spacing, uint32_t color);
 void draw_pixel(int x, int y, uint32_t color);
-void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color); 
+void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color);
 void draw_rect(int x, int y, int w, int h, uint32_t color);
 void draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, uint32_t color); // uses Bresenheim's
 void render_framebuffer(void);
 void clear_framebuffer(uint32_t color);
-void free_resources(void);
+void destroy_window(void);
 #endif

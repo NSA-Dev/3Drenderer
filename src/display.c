@@ -101,6 +101,7 @@ void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color) {
     draw_pixel(x1, y1, color); 
 }
 
+
 void draw_rect(int x, int y, int w, int h, uint32_t color) {
     for(int row = y; row < y + h; row++) {
         for(int col = x; col < x + w; col++) {
@@ -132,8 +133,7 @@ void clear_framebuffer(uint32_t color) {
     } 
 }
 
-void free_resources(void) {
-    if(framebuffer != NULL) free(framebuffer); 
+void destroy_window(void) { 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit(); 
