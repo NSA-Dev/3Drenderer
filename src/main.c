@@ -68,7 +68,10 @@ bool setup(void) {
         fprintf(stderr, "Failed to allocate SDL_Texture.\n");
         return false;
    }
-    load_cube_mesh(); // remove for general use cases 
+    load_cube_mesh(); // used for testing.
+    
+    // TODO implement custom mesh loading
+
     return true; 
 }
 
@@ -95,7 +98,7 @@ void process_input(void) {
     }
 }
 
-// remains in main.c for now
+// TODO find a better place for this function, remains in main.c for now
 vec2_t project(vec3_t* p) {
     vec2_t projected = {
         .x = (fov_factor * p->x) / p->z,
