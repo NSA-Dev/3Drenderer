@@ -10,21 +10,22 @@
 
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 
+/* .z rotations are disabled (they work, just did not add controls for them)*/
+
+
 triangle_t* triangles_to_render = NULL;
-
-
 bool is_running = false;
 int previous_frame_time = 0; // ms
 float fov_factor = 640;
 /*  vector  declr  */
 vec3_t camera_pos = {.x = 0, .y = 0, .z = 5};
-vec3_t cube_rotation = {.x = 0, .y = 0, .z = 0};
 
  
 bool setup(void);
 void process_input(void);
 void update(void);
 void render(void);
+void free_resources(void);
 
 int main(void) {
     is_running = init_win();
@@ -39,7 +40,8 @@ int main(void) {
        update();
        render();  
     }
-    
+   
+    destroy_window();
     free_resources();
 
     return 0;
@@ -66,7 +68,7 @@ bool setup(void) {
         fprintf(stderr, "Failed to allocate SDL_Texture.\n");
         return false;
    }
-
+    load_cube_mesh(); // remove for general use cases 
     return true; 
 }
 
@@ -82,13 +84,13 @@ void process_input(void) {
             if(event.key.keysym.sym == SDLK_ESCAPE)
                 is_running = false;
             else if (event.key.keysym.sym == SDLK_LEFT)
-                cube_rotation.y += 0.1;
+                mesh.rotation.y += 0.1;
             else if(event.key.keysym.sym == SDLK_RIGHT)
-                cube_rotation.y -= 0.1;
+                mesh.rotation.y -= 0.1;
             else if (event.key.keysym.sym == SDLK_UP)
-                cube_rotation.x += 0.1;
+                mesh.rotation.x += 0.1;
             else if(event.key.keysym.sym == SDLK_DOWN)
-                cube_rotation.x -= 0.1;
+                mesh.rotation.x -= 0.1;
             break; 
     }
 }
@@ -109,18 +111,19 @@ void update(void) {
     previous_frame_time = SDL_GetTicks(); 
 
     triangles_to_render = NULL;
+    int num_faces = array_length(mesh.faces);
 
-    for(int i = 0; i < N_MESH_FACES; i++) {
-        face_t mesh_face = mesh_faces[i];
+    for(int i = 0; i < num_faces; i++) {
+        face_t mesh_face = mesh.faces[i];
         
         vec3_t face_verts[3]; 
-        // look inside the mesh_face.(a/b/c)
+        // look inside the mesh.faces[i].(a/b/c)
         // find index corresponding to a
         // grab data with the index from mesh_verts
         // -1 compensates for index  offset
-        face_verts[0] = mesh_verts[mesh_face.a - 1];
-        face_verts[1] = mesh_verts[mesh_face.b - 1];
-        face_verts[2] = mesh_verts[mesh_face.c - 1];
+        face_verts[0] = mesh.verts[mesh_face.a - 1];
+        face_verts[1] = mesh.verts[mesh_face.b - 1];
+        face_verts[2] = mesh.verts[mesh_face.c - 1];
         
         // prepare a temp triangle_t for passing into triangles_to_render[]
         // line 138
@@ -130,9 +133,9 @@ void update(void) {
         for(int j = 0; j < 3; j++) {
             vec3_t temp = face_verts[j]; 
         
-            if(cube_rotation.x != 0) vec3_rotate_x(&temp, cube_rotation.x);
-            if(cube_rotation.y != 0) vec3_rotate_y(&temp, cube_rotation.y);
-            if(cube_rotation.z != 0) vec3_rotate_z(&temp, cube_rotation.z);
+            if(mesh.rotation.x != 0) vec3_rotate_x(&temp, mesh.rotation.x);
+            if(mesh.rotation.y != 0) vec3_rotate_y(&temp, mesh.rotation.y);
+            if(mesh.rotation.z != 0) vec3_rotate_z(&temp, mesh.rotation.z);
             
             // factor in camera depth
             temp.z -= camera_pos.z;
@@ -154,10 +157,10 @@ void update(void) {
 
 
     // check rotations for overflow
-    if(cube_rotation.x > R_LIMIT) cube_rotation.x -= R_LIMIT;
-    if(cube_rotation.x < R_LIMIT) cube_rotation.x += R_LIMIT;
-    if(cube_rotation.y > R_LIMIT) cube_rotation.y -= R_LIMIT;
-    if(cube_rotation.y < R_LIMIT) cube_rotation.y += R_LIMIT;   
+    if(mesh.rotation.x > R_LIMIT) mesh.rotation.x -= R_LIMIT;
+    if(mesh.rotation.x < R_LIMIT) mesh.rotation.x += R_LIMIT;
+    if(mesh.rotation.y > R_LIMIT) mesh.rotation.y -= R_LIMIT;
+    if(mesh.rotation.y < R_LIMIT) mesh.rotation.y += R_LIMIT;   
 }
 
 void render(void) {
@@ -186,4 +189,9 @@ void render(void) {
     clear_framebuffer(COLOR_BLACK);
     SDL_RenderPresent(renderer); 
 }
-
+void free_resources(void) {
+    if(framebuffer != NULL) free(framebuffer); 
+    array_free(mesh.faces);
+    array_free(mesh.verts);
+    
+}
