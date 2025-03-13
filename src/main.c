@@ -19,7 +19,7 @@ int previous_frame_time = 0; // ms
 float fov_factor = 640;
 char default_asset_dir[] = "./assets/f22.obj";
 /*  vector  declr  */
-vec3_t camera_pos = {.x = 0, .y = 0, .z = 5};
+vec3_t camera_pos = {.x = 0, .y = 0, .z = -5};
 
  
 bool setup(void);
@@ -98,6 +98,11 @@ void process_input(void) {
                 mesh.rotation.x += 0.1;
             else if(event.key.keysym.sym == SDLK_DOWN)
                 mesh.rotation.x -= 0.1;
+            //TODO add camera control limits
+            else if(event.key.keysym.sym == SDLK_KP_PLUS)
+                camera_pos.z += 0.1;
+            else if(event.key.keysym.sym == SDLK_KP_MINUS)
+                camera_pos.z -= 0.1;
             break; 
     }
 }
@@ -145,7 +150,7 @@ void update(void) {
             if(mesh.rotation.z != 0) vec3_rotate_z(&temp, mesh.rotation.z);
             
             // factor in camera depth
-            temp.z -= camera_pos.z;
+            temp.z += camera_pos.z;
 
             // project (perspective divide)
             vec2_t projected = project(&temp);
