@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
 #include "mesh.h"
 #include "array.h"
 
@@ -53,4 +55,45 @@ void load_cube_mesh(void) {
         face_t cube_f = cube_faces[i];
         array_push(mesh.faces, cube_f); 
     }
+}
+
+bool load_mesh_data(char* fname) {
+    FILE* fp;
+    char str[1024];
+
+    if((fp = fopen(fname, "r")) == NULL) {
+        printf("Error: couldn't open file\n");
+        return false;
+    }
+
+    while(fgets(str, sizeof(str), fp) != NULL) {
+        
+        // expects: "v  1.0000 2.000 3.000"
+        if(!strncmp(str, "v ", 2)) {
+            vec3_t vector;
+            sscanf(str, "v %f %f %f", &vector.x, &vector.y, &vector.z);
+            array_push(mesh.verts, vector);
+        }
+        // expects: "f 1/2/3 1/2/3 1/2/3 "
+        if(!strncmp(str, "f ", 2)) {
+            int vert_i[3];
+            int texture_i[3];
+            int normal_i[3];
+
+            sscanf(str, "f %d/%d/%d %d/%d/%d %d/%d/%d",
+                   &vert_i[0], &texture_i[0], &normal_i[0],
+                   &vert_i[1], &texture_i[1], &normal_i[1],
+                   &vert_i[2], &texture_i[2], &normal_i[2]
+                  );
+            
+            face_t face = {
+                .a = vert_i[0],
+                .b = vert_i[1],
+                .c = vert_i[2]
+            };
+
+            array_push(mesh.faces, face); 
+        }
+    }
+    return true; 
 }
