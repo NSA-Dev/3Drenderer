@@ -17,6 +17,7 @@ triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
 float fov_factor = 640;
+char default_asset_dir[] = "./assets/f22.obj";
 /*  vector  declr  */
 vec3_t camera_pos = {.x = 0, .y = 0, .z = 5};
 
@@ -68,10 +69,13 @@ bool setup(void) {
         fprintf(stderr, "Failed to allocate SDL_Texture.\n");
         return false;
    }
-    load_cube_mesh(); // used for testing.
-    
-    // TODO implement custom mesh loading
 
+   //if unable to load custom model, load default cube and print msg
+    if(!load_mesh_data(default_asset_dir)) {
+        printf("Error: unable to read specified .obj file.\n");
+        printf("Loading default model...\n");  
+        load_cube_mesh(); 
+    }
     return true; 
 }
 
