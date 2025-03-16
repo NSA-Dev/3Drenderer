@@ -102,7 +102,7 @@ void process_input(void) {
                 mesh.rotation.x += 0.1;
             else if(event.key.keysym.sym == SDLK_DOWN)
                 mesh.rotation.x -= 0.1;
-            //TODO add camera control limits
+            //TODO broken because of culling, add camera control limits
             else if(event.key.keysym.sym == SDLK_KP_PLUS)
                 camera_pos.z += 0.1;
             else if(event.key.keysym.sym == SDLK_KP_MINUS)
@@ -158,7 +158,7 @@ void update(void) {
             // store tranformed result into array 
             transformed_vertices[j] = temp; 
         }
-        //TODO Culling check (clock wise orientation)
+        /* Culling check (clock wise orientation) */
         
         // Grabbing vertices
         vec3_t a = transformed_vertices[0]; /*   A  */
@@ -171,14 +171,15 @@ void update(void) {
         
         // Find their normal via cross product
         vec3_t normal = vec3_cross(&b_a, &c_a);
-
+        // normalize it since only direction is relevant
+        vec3_norm(&normal);
         // Find camera ray by substracting camera pos from A
         vec3_t camera_ray = vec3_sub(&camera_pos, &a);
 
         // check alignmend between the normal and camera via dot prod
         float alignment_factor = vec3_dot(&normal, &camera_ray); 
-        // should be == 0, if not aligned with camera (looking away) skip it
-        if(alignment_factor <= 0) {
+        // was <= 0, if not aligned with camera (looking away) skip it
+        if(alignment_factor < 0) {
             continue;
         }  
 
