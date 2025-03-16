@@ -167,7 +167,9 @@ void update(void) {
         
         // calculate (CA & BA) lengths
         vec3_t c_a = vec3_sub(&c, &a);
-        vec3_t b_a = vec3_sub(&b, &a); 
+        vec3_t b_a = vec3_sub(&b, &a);
+        vec3_norm(&c_a);
+        vec3_norm(&b_a); 
         
         // Find their normal via cross product
         vec3_t normal = vec3_cross(&b_a, &c_a);

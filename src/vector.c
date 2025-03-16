@@ -45,7 +45,7 @@ float vec2_dot(vec2_t* a, vec2_t* b) {
 
 void vec2_norm(vec2_t* v) {
     // v is already a pointer inside this function hence no &
-    // cause you will pass the address of the ptr this way
+    // cause you will pass the address of the ptr itself this way
     float z = vec2_mag(v);
     *v = vec2_div(v, z); 
 }
