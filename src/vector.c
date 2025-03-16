@@ -69,7 +69,7 @@ vec3_t vec3_mul(vec3_t* v, float factor) {
         };
     return res; 
 }
-vec3_t vec3_div(vec2_t* v, float factor); {
+vec3_t vec3_div(vec3_t* v, float factor) {
     vec3_t res = {
         .x = v->x / factor,
         .y = v->y / factor,
