@@ -19,6 +19,23 @@ vec2_t vec2_sub(vec2_t* a, vec2_t* b){
                  };
     return res;
 }
+
+
+vec2_t vec2_mul(vec2_t* v, float factor) {
+    vec2_t res = {
+        .x = v->x * factor,
+        .y = v->y * factor
+        };
+    return res; 
+}
+vec2_t vec2_div(vec2_t* v, float factor) {
+    vec2_t res = {
+        .x = v->x / factor,
+        .y = v->y / factor
+        };
+    return res; 
+}
+
 // 3D vector functions
 float vec3_mag(vec3_t* v) {
     float res = sqrtf(v->x * v->x 
@@ -41,6 +58,24 @@ vec3_t vec3_sub(vec3_t* a, vec3_t* b){
                    .z = a->z - b->z
                  };
     return res;
+}
+
+
+vec3_t vec3_mul(vec3_t* v, float factor) {
+    vec3_t res = {
+        .x = v->x * factor,
+        .y = v->y * factor,
+        .z = v->z * factor
+        };
+    return res; 
+}
+vec3_t vec3_div(vec2_t* v, float factor); {
+    vec3_t res = {
+        .x = v->x / factor,
+        .y = v->y / factor,
+        .z = v->z / factor
+        };
+    return res; 
 }
 
 void vec3_rotate_x(vec3_t* v, float angle) {
