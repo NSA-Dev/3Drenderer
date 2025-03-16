@@ -42,6 +42,14 @@ float vec2_dot(vec2_t* a, vec2_t* b) {
     return res; 
 }
 
+
+void vec2_norm(vec2_t* v) {
+    // v is already a pointer inside this function hence no &
+    // cause you will pass the address of the ptr this way
+    float z = vec2_mag(v);
+    *v = vec2_div(v, z); 
+}
+
 // 3D vector functions
 float vec3_mag(vec3_t* v) {
     float res = sqrtf(v->x * v->x 
@@ -97,6 +105,12 @@ vec3_t vec3_cross(vec3_t* a, vec3_t* b) {
 float vec3_dot(vec3_t* a, vec3_t* b) {
     float res = (a->x * b->x) + (a->y * b->y) + (a->z * b->z);
     return res; 
+}
+
+void vec3_norm(vec3_t* v) {
+    // refer to vec2 version of this if confused on ptrs 
+    float z = vec3_mag(v);
+    *v = vec3_div(v, z); 
 }
 
 void vec3_rotate_x(vec3_t* v, float angle) {
