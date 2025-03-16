@@ -17,9 +17,13 @@ triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
 float fov_factor = 640;
-char default_asset_dir[] = "./assets/f22.obj";
+char default_asset_dir[] = "./assets/cube.obj";
 /*  vector  declr  */
-vec3_t camera_pos = {.x = 0, .y = 0, .z = -5};
+
+
+vec3_t camera_pos = { 0, 0, 0};
+// replace with the one below to fix controls (breaks culling)
+// vec3_t camera_pos = {.x = 0, .y = 0, .z = -5};
 
  
 bool setup(void);
@@ -138,10 +142,10 @@ void update(void) {
         face_verts[2] = mesh.verts[mesh_face.c - 1];
         
         // prepare a temp triangle_t for passing into triangles_to_render[]
-        // line 138
         triangle_t projected_triangle; 
-
-        // transform recieved verts
+        // prepare an array to store tranformations for intermediate culling check
+        vec3_t transformed_vertices[3];
+        // Transformation step
         for(int j = 0; j < 3; j++) {
             vec3_t temp = face_verts[j]; 
         
@@ -149,11 +153,40 @@ void update(void) {
             if(mesh.rotation.y != 0) vec3_rotate_y(&temp, mesh.rotation.y);
             if(mesh.rotation.z != 0) vec3_rotate_z(&temp, mesh.rotation.z);
             
-            // factor in camera depth
-            temp.z += camera_pos.z;
+            // normaly factor in camera depth, but replaced with mn
+            temp.z += -5; 
+            // store tranformed result into array 
+            transformed_vertices[j] = temp; 
+        }
+        //TODO Culling check (clock wise orientation)
+        
+        // Grabbing vertices
+        vec3_t a = transformed_vertices[0]; /*   A  */
+        vec3_t b = transformed_vertices[1]; /*  / \  */
+        vec3_t c = transformed_vertices[2]; /* C---B */
+        
+        // calculate (CA & BA) lengths
+        vec3_t c_a = vec3_sub(&c, &a);
+        vec3_t b_a = vec3_sub(&b, &a); 
+        
+        // Find their normal via cross product
+        vec3_t normal = vec3_cross(&b_a, &c_a);
 
+        // Find camera ray by substracting camera pos from A
+        vec3_t camera_ray = vec3_sub(&camera_pos, &a);
+
+        // check alignmend between the normal and camera via dot prod
+        float alignment_factor = vec3_dot(&normal, &camera_ray); 
+        // should be == 0, if not aligned with camera (looking away) skip it
+        if(alignment_factor <= 0) {
+            continue;
+        }  
+
+        // Projection step
+        for(int j = 0; j < 3; j++) {
+            
             // project (perspective divide)
-            vec2_t projected = project(&temp);
+            vec2_t projected = project(&transformed_vertices[j]);
            
             // scale and translate to the middle of the screen
             projected.x += (win_w/2);
@@ -162,8 +195,7 @@ void update(void) {
             // pass into the array
             projected_triangle.points[j] = projected; 
        } 
-        // save calculated data for rendering
-        //triangles_to_render[i] = projected_triangle; 
+        // save calculated data for rendering 
         array_push(triangles_to_render, projected_triangle); 
     }
 
