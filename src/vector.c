@@ -36,6 +36,12 @@ vec2_t vec2_div(vec2_t* v, float factor) {
     return res; 
 }
 
+
+float vec2_dot(vec2_t* a, vec2_t* b) {
+    float res = (a->x * b->x) + (a->y * b->y);
+    return res; 
+}
+
 // 3D vector functions
 float vec3_mag(vec3_t* v) {
     float res = sqrtf(v->x * v->x 
@@ -75,6 +81,21 @@ vec3_t vec3_div(vec3_t* v, float factor) {
         .y = v->y / factor,
         .z = v->z / factor
         };
+    return res; 
+}
+
+
+vec3_t vec3_cross(vec3_t* a, vec3_t* b) {
+    vec3_t res = {
+        .x = (a->y * b->z) - (a->z * b->y),
+        .y = (a->z * b->x) - (a->x * b->z), 
+        .z = (a->x * b->y) - (a->y * b->x) 
+    };
+    return res; 
+}
+
+float vec3_dot(vec3_t* a, vec3_t* b) {
+    float res = (a->x * b->x) + (a->y * b->y) + (a->z * b->z);
     return res; 
 }
 
