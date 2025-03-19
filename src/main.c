@@ -17,7 +17,11 @@ triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
 float fov_factor = 640;
-char default_asset_dir[] = "./assets/cube.obj";
+char default_asset_dir[] = "./assets/na"; // Usage: manually specify model.
+                                        // shouldn't be used until I implement parsing
+                                        // colors / textures from .obj files,
+                                        // since face_t has been altered to include
+                                        // color (uint32_t) field
 /*  vector  declr  */
 
 
@@ -171,9 +175,11 @@ void update(void) {
         face_verts[2] = mesh.verts[mesh_face.c - 1];
         
         // prepare a temp triangle_t for passing into triangles_to_render[]
-        triangle_t projected_triangle; 
+        triangle_t projected_triangle;
+
         // prepare an array to store tranformations for intermediate culling check
         vec3_t transformed_vertices[3];
+
         // Transformation step
         for(int j = 0; j < 3; j++) {
             vec3_t temp = face_verts[j]; 
@@ -202,17 +208,19 @@ void update(void) {
         
         // Find their normal via cross product
         vec3_t normal = vec3_cross(&b_a, &c_a);
+        
         // normalize it since only direction is relevant
         vec3_norm(&normal);
+        
         // Find camera ray by substracting camera pos from A
         vec3_t camera_ray = vec3_sub(&camera_pos, &a);
 
         // check alignment between the normal and camera via dot prod
         float alignment_factor = vec3_dot(&normal, &camera_ray); 
+        
         // was <= 0, if not aligned with camera (looking away) skip it
-        if(alignment_factor < 0) {
-            continue;
-        }
+        if(alignment_factor < 0) continue;
+        
         }  
 
         // Projection step
@@ -227,7 +235,10 @@ void update(void) {
 
             // pass into the array
             projected_triangle.points[j] = projected; 
-       } 
+       }
+        // add color data to the triangle
+        projected_triangle.color = mesh_face.color;
+        
         // save calculated data for rendering 
         array_push(triangles_to_render, projected_triangle); 
     }
@@ -247,9 +258,9 @@ void render(void) {
     for(int i = 0; i < polycount; i++) {
         triangle_t triangle = triangles_to_render[i];
         if(rendering_mode.enable_vertices) { 
-        draw_rect(triangle.points[0].x, triangle.points[0].y, 3, 3, COLOR_RED); 
-        draw_rect(triangle.points[1].x, triangle.points[1].y, 3, 3, COLOR_RED); 
-        draw_rect(triangle.points[2].x, triangle.points[2].y, 3, 3, COLOR_RED);
+        draw_rect(triangle.points[0].x - 3, triangle.points[0].y - 3, 4, 4, COLOR_RED); 
+        draw_rect(triangle.points[1].x - 3, triangle.points[1].y - 3, 4, 4, COLOR_RED); 
+        draw_rect(triangle.points[2].x - 3, triangle.points[2].y - 3, 4, 4, COLOR_RED);
         }
 
         if(rendering_mode.enable_solid) {
@@ -257,7 +268,7 @@ void render(void) {
                 triangle.points[0].x, triangle.points[0].y,
                 triangle.points[1].x, triangle.points[1].y,
                 triangle.points[2].x, triangle.points[2].y,
-                COLOR_ORANGE                  
+                triangle.color                  
                 );
         }
 
@@ -266,7 +277,7 @@ void render(void) {
                 triangle.points[0].x, triangle.points[0].y,
                 triangle.points[1].x, triangle.points[1].y,
                 triangle.points[2].x, triangle.points[2].y,
-                COLOR_BLACK                  
+                COLOR_GRAY                  
                 );
         } 
     } 

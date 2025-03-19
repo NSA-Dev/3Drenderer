@@ -9,11 +9,13 @@ typedef struct {
     int a;
     int b;
     int c;
+    uint32_t color;
 } face_t; 
 
 // used for storing actual (x,y) coordinates for each vert
 typedef struct {
     vec2_t points[3];
+    uint32_t color;
 } triangle_t; 
 
 // move to display.c ?
