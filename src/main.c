@@ -80,6 +80,8 @@ bool setup(void) {
         printf("Loading default model...\n");  
         load_cube_mesh(); 
     }
+
+    initialize_rendering_mode();
     return true; 
 }
 
@@ -92,8 +94,10 @@ void process_input(void) {
             is_running = false;
             break;
         case SDL_KEYDOWN:
+            // Quit the program
             if(event.key.keysym.sym == SDLK_ESCAPE)
                 is_running = false;
+            // Rotations
             else if (event.key.keysym.sym == SDLK_LEFT)
                 mesh.rotation.y += 0.1;
             else if(event.key.keysym.sym == SDLK_RIGHT)
@@ -102,11 +106,36 @@ void process_input(void) {
                 mesh.rotation.x += 0.1;
             else if(event.key.keysym.sym == SDLK_DOWN)
                 mesh.rotation.x -= 0.1;
-            //TODO broken because of culling, add camera control limits
+            // Zoom  TODO fix this (broken because of culling), add camera control limits
             else if(event.key.keysym.sym == SDLK_KP_PLUS)
                 camera_pos.z += 0.1;
             else if(event.key.keysym.sym == SDLK_KP_MINUS)
                 camera_pos.z -= 0.1;
+            // Rendering modes
+            else if(event.key.keysym.sym == SDLK_F1) {
+                rendering_mode.enable_wireframe = true;
+                rendering_mode.enable_vertices = true;
+                rendering_mode.enable_solid = false;
+            }    
+            else if (event.key.keysym.sym == SDLK_F2) {
+                rendering_mode.enable_wireframe = true;
+                rendering_mode.enable_vertices = false;
+                rendering_mode.enable_solid = false; 
+            }
+            else if(event.key.keysym.sym == SDLK_F3) {
+                rendering_mode.enable_wireframe = false;
+                rendering_mode.enable_vertices = false;
+                rendering_mode.enable_solid = true; 
+            }
+            else if (event.key.keysym.sym == SDLK_F4) {
+                rendering_mode.enable_wireframe = true;
+                rendering_mode.enable_vertices = false;
+                rendering_mode.enable_solid = true; 
+            }
+            else if(event.key.keysym.sym == SDLK_F5)
+                rendering_mode.enable_culling = true;
+            else if(event.key.keysym.sym == SDLK_F6)
+                rendering_mode.enable_culling = false; 
             break; 
     }
 }
@@ -159,7 +188,7 @@ void update(void) {
             transformed_vertices[j] = temp; 
         }
         /* Culling check (clock wise orientation) */
-        
+        if(rendering_mode.enable_culling) {
         // Grabbing vertices
         vec3_t a = transformed_vertices[0]; /*   A  */
         vec3_t b = transformed_vertices[1]; /*  / \  */
@@ -178,11 +207,12 @@ void update(void) {
         // Find camera ray by substracting camera pos from A
         vec3_t camera_ray = vec3_sub(&camera_pos, &a);
 
-        // check alignmend between the normal and camera via dot prod
+        // check alignment between the normal and camera via dot prod
         float alignment_factor = vec3_dot(&normal, &camera_ray); 
         // was <= 0, if not aligned with camera (looking away) skip it
         if(alignment_factor < 0) {
             continue;
+        }
         }  
 
         // Projection step
@@ -215,22 +245,30 @@ void render(void) {
     int polycount = array_length(triangles_to_render);
 
     for(int i = 0; i < polycount; i++) {
-        triangle_t triangle = triangles_to_render[i]; 
-        draw_rect(triangle.points[0].x, triangle.points[0].y, 3, 3, COLOR_GREEN); 
-        draw_rect(triangle.points[1].x, triangle.points[1].y, 3, 3, COLOR_GREEN); 
-        draw_rect(triangle.points[2].x, triangle.points[2].y, 3, 3, COLOR_GREEN);
+        triangle_t triangle = triangles_to_render[i];
+        if(rendering_mode.enable_vertices) { 
+        draw_rect(triangle.points[0].x, triangle.points[0].y, 3, 3, COLOR_RED); 
+        draw_rect(triangle.points[1].x, triangle.points[1].y, 3, 3, COLOR_RED); 
+        draw_rect(triangle.points[2].x, triangle.points[2].y, 3, 3, COLOR_RED);
+        }
+
+        if(rendering_mode.enable_solid) {
         draw_filled_triangle(
                 triangle.points[0].x, triangle.points[0].y,
                 triangle.points[1].x, triangle.points[1].y,
                 triangle.points[2].x, triangle.points[2].y,
                 COLOR_ORANGE                  
                 );
+        }
+
+        if(rendering_mode.enable_wireframe) {
         draw_triangle(
                 triangle.points[0].x, triangle.points[0].y,
                 triangle.points[1].x, triangle.points[1].y,
                 triangle.points[2].x, triangle.points[2].y,
                 COLOR_BLACK                  
-                ); 
+                );
+        } 
     } 
 
     array_free(triangles_to_render); 
