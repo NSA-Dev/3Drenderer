@@ -1,6 +1,7 @@
 #include "display.h"
 
 /* global init */
+render_flags_t rendering_mode;
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 uint32_t* framebuffer = NULL;
@@ -56,6 +57,14 @@ bool init_win(void) {
     /* True fullscreen mode */
    // SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN); 
     return true; 
+}
+
+
+void initialize_rendering_mode(void) {
+   rendering_mode.enable_wireframe = false;
+   rendering_mode.enable_vertices = false;
+   rendering_mode.enable_solid = true;
+   rendering_mode.enable_culling = true;  
 }
 
 void draw_grid(int spacing, uint32_t color) {
