@@ -1,7 +1,12 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-// TODO Implement matrix structures and functions
+
+typedef struct {
+    float m[4][4];
+} mat4_t;
 
 
+mat4_t mat4_make_identity(void);
+mat4_t mat4_make_scale(float sx, float sy, float sz);
 #endif
