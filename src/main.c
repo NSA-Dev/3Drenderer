@@ -222,7 +222,11 @@ void update(void) {
         if(alignment_factor < 0) continue;
         
         }  
-
+        
+        //avg depth calculation for z sorting
+        float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;  
+        projected_triangle.avg_depth = avg_depth;
+    
         // Projection step
         for(int j = 0; j < 3; j++) {
             
@@ -240,9 +244,18 @@ void update(void) {
         projected_triangle.color = mesh_face.color;
         
         // save calculated data for rendering 
-        array_push(triangles_to_render, projected_triangle); 
+        array_push(triangles_to_render, projected_triangle);
+        
     }
 
+    // sort triangles by average depth for painters algorithm
+    int length = array_length(triangles_to_render);
+    qsort_depth(triangles_to_render, 0, length - 1);
+   
+   // DEBUG 
+   // for(int i = 0; i < length; i++) {
+   //     printf("Depth after sort[%d]: %.3f\n", i, triangles_to_render[i].avg_depth);
+   // }
 
     // check rotations for overflow
     if(mesh.rotation.x > R_LIMIT) mesh.rotation.x -= R_LIMIT;
