@@ -77,3 +77,34 @@ void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32
     }
 }
 
+void swap_triangle_t(triangle_t* a, triangle_t* b) {
+    triangle_t temp = *a;
+    *a = *b;
+    *b = temp; 
+}
+
+int partition(triangle_t* array, int low, int high) {
+    float pivot = array[high].avg_depth;
+    int i = low;
+
+
+    for(int j = low; j < high; j++) {
+        if(array[j].avg_depth <= pivot) {
+            swap_triangle_t(&array[i], &array[j]);
+            i++;
+        }
+    }
+
+    swap_triangle_t(&array[i], &array[high]);
+
+    return i; 
+} 
+
+void qsort_depth(triangle_t* array, int low, int high) {
+    if (low < high) {
+        int pivot = partition(array, low, high); 
+        qsort_depth(array, low, pivot - 1);
+        qsort_depth(array, pivot + 1, high);
+    } 
+}
+
