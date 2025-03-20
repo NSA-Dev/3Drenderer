@@ -7,6 +7,7 @@
 #include "vector.h"
 #include "mesh.h"
 #include "array.h"
+#include "matrix.h"
 
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 
@@ -159,9 +160,19 @@ void update(void) {
     if(time_to_wait > 0) SDL_Delay(time_to_wait);     
     previous_frame_time = SDL_GetTicks(); 
 
+    // testing values (incremented each frame)
+    mesh.scale.x += 0.002;
+    mesh.rotation.z += 0.01;
+
+    // create a scale matrix to multiply mesh verts
+    mat4_t scale_matrix = mat4_make_scale(mesh.scale.x, mesh.scale.y, mesh.scale.z); 
+
+    // reset triangle array
     triangles_to_render = NULL;
     int num_faces = array_length(mesh.faces);
 
+    /* Main transformation loop, goes through all of the faces and applies
+     * transformation data */
     for(int i = 0; i < num_faces; i++) {
         face_t mesh_face = mesh.faces[i];
         
@@ -178,49 +189,55 @@ void update(void) {
         triangle_t projected_triangle;
 
         // prepare an array to store tranformations for intermediate culling check
-        vec3_t transformed_vertices[3];
+        // changed to vec4_t
+        vec4_t transformed_vertices[3];
 
-        // Transformation step
+        // Transformation step, note the type conversions
         for(int j = 0; j < 3; j++) {
-            vec3_t temp = face_verts[j]; 
+            vec4_t temp = vec4_from_vec3(face_verts[j]);
+            //scale
+            temp = mat4_mult_vec4(scale_matrix, temp);
         
+
+            /* TODO  restructure to work with matrices and vec4_t (lec 14:22)
             if(mesh.rotation.x != 0) vec3_rotate_x(&temp, mesh.rotation.x);
             if(mesh.rotation.y != 0) vec3_rotate_y(&temp, mesh.rotation.y);
             if(mesh.rotation.z != 0) vec3_rotate_z(&temp, mesh.rotation.z);
-            
-            // normaly factor in camera depth, but replaced with mn
+            */
+
+            // normaly factor in camera depth, but replaced with a manual offset
             temp.z += -5; 
             // store tranformed result into array 
             transformed_vertices[j] = temp; 
         }
+
         /* Culling check (clock wise orientation) */
         if(rendering_mode.enable_culling) {
         // Grabbing vertices
-        vec3_t a = transformed_vertices[0]; /*   A  */
-        vec3_t b = transformed_vertices[1]; /*  / \  */
-        vec3_t c = transformed_vertices[2]; /* C---B */
+            vec3_t a = transformed_vertices[0]; /*   A  */
+            vec3_t b = transformed_vertices[1]; /*  / \  */
+            vec3_t c = transformed_vertices[2]; /* C---B */
         
         // calculate (CA & BA) lengths
-        vec3_t c_a = vec3_sub(&c, &a);
-        vec3_t b_a = vec3_sub(&b, &a);
-        vec3_norm(&c_a);
-        vec3_norm(&b_a); 
+            vec3_t c_a = vec3_sub(&c, &a);
+            vec3_t b_a = vec3_sub(&b, &a);
+            vec3_norm(&c_a);
+            vec3_norm(&b_a); 
         
         // Find their normal via cross product
-        vec3_t normal = vec3_cross(&b_a, &c_a);
+            vec3_t normal = vec3_cross(&b_a, &c_a);
         
         // normalize it since only direction is relevant
-        vec3_norm(&normal);
+            vec3_norm(&normal);
         
         // Find camera ray by substracting camera pos from A
-        vec3_t camera_ray = vec3_sub(&camera_pos, &a);
+            vec3_t camera_ray = vec3_sub(&camera_pos, &a);
 
         // check alignment between the normal and camera via dot prod
-        float alignment_factor = vec3_dot(&normal, &camera_ray); 
+            float alignment_factor = vec3_dot(&normal, &camera_ray); 
         
         // was <= 0, if not aligned with camera (looking away) skip it
-        if(alignment_factor < 0) continue;
-        
+            if(alignment_factor < 0) continue;
         }  
         
         //avg depth calculation for z sorting
