@@ -143,3 +143,16 @@ void vec3_rotate_z(vec3_t* v, float angle) {
    v->x = r_x;
    v->y = r_y;
 }
+
+// Vector conversion functions
+
+vec4_t vec4_from_vec3(vec3_t* v) {
+    vec4_t res = {
+        .x = v->x,
+        .y = v->y,
+        .z = v->z,
+        .w = 1.0
+    };
+
+    return res; 
+}
