@@ -156,3 +156,13 @@ vec4_t vec4_from_vec3(vec3_t* v) {
 
     return res; 
 }
+
+vec3_t vec3_from_vec4(vec4_t* v) {
+    vec3_t res = {
+        .x = v->x,
+        .y = v->y,
+        .z = v->z
+    };
+
+    return res;
+}
