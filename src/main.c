@@ -194,9 +194,9 @@ void update(void) {
 
         // Transformation step, note the type conversions
         for(int j = 0; j < 3; j++) {
-            vec4_t temp = vec4_from_vec3(face_verts[j]);
+            vec4_t temp = vec4_from_vec3(&face_verts[j]);
             //scale
-            temp = mat4_mult_vec4(scale_matrix, temp);
+            temp = mat4_mult_vec4(&scale_matrix, &temp);
         
 
             /* TODO  restructure to work with matrices and vec4_t (lec 14:22)
@@ -213,10 +213,11 @@ void update(void) {
 
         /* Culling check (clock wise orientation) */
         if(rendering_mode.enable_culling) {
-        // Grabbing vertices
-            vec3_t a = transformed_vertices[0]; /*   A  */
-            vec3_t b = transformed_vertices[1]; /*  / \  */
-            vec3_t c = transformed_vertices[2]; /* C---B */
+        //TODO account for vec4. 
+        //Grabing vertices (temp solution is to convert back to vec3_t)
+            vec3_t a = vec3_from_vec4(&transformed_vertices[0]); /*   A  */
+            vec3_t b = vec3_from_vec4(&transformed_vertices[1]); /*  / \  */
+            vec3_t c = vec3_from_vec4(&transformed_vertices[2]); /* C---B */
         
         // calculate (CA & BA) lengths
             vec3_t c_a = vec3_sub(&c, &a);
@@ -247,8 +248,12 @@ void update(void) {
         // Projection step
         for(int j = 0; j < 3; j++) {
             
+            //TODO implement vec4 support
+            // cast to vec3 before projecting (project expects vec3_t)
+            vec3_t current_v = vec3_from_vec4(&transformed_vertices[j]);
+
             // project (perspective divide)
-            vec2_t projected = project(&transformed_vertices[j]);
+            vec2_t projected = project(&current_v);
            
             // scale and translate to the middle of the screen
             projected.x += (win_w/2);
