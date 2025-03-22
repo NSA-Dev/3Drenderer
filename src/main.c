@@ -161,13 +161,20 @@ void update(void) {
     previous_frame_time = SDL_GetTicks(); 
 
     // testing values (incremented each frame)
+    // Note: rotations are not working
     mesh.scale.x += 0.002;
-    mesh.rotation.z += 0.01;
+    mesh.translation.x += 0.01;
 
     // create a scale matrix to multiply mesh verts
-    mat4_t scale_matrix = mat4_make_scale(mesh.scale.x, mesh.scale.y, mesh.scale.z); 
-
-    // reset triangle array
+    mat4_t scale_matrix = mat4_make_scale(mesh.scale.x, 
+                                          mesh.scale.y, 
+                                          mesh.scale.z
+                                          ); 
+    mat4_t translation_matrix = mat4_make_translation(mesh.translation.x,
+                                                      mesh.translation.y,
+                                                      mesh.translation.z
+                                                     );  
+    // reset triangle array (leaks mem?)
     triangles_to_render = NULL;
     int num_faces = array_length(mesh.faces);
 
@@ -194,9 +201,12 @@ void update(void) {
 
         // Transformation step, note the type conversions
         for(int j = 0; j < 3; j++) {
+            // create a temp vector to apply transforms
             vec4_t temp = vec4_from_vec3(&face_verts[j]);
-            //scale
+            
+            //scale & translate
             temp = mat4_mult_vec4(&scale_matrix, &temp);
+            temp = mat4_mult_vec4(&translation_matrix, &temp);
         
 
             /* TODO  restructure to work with matrices and vec4_t (lec 14:22)
