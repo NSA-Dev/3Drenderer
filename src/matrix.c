@@ -37,6 +37,42 @@ mat4_t mat4_make_translation(float tx, float ty, float tz) {
     return translation;
 }
 
+mat4_t mat4_make_rotation_x(float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+
+    mat4_t res = mat4_make_identity();
+    res.m[1][1] = c;
+    res.m[1][2] = -s;
+    res.m[2][1] = s;
+    res.m[2][2] = c;
+
+    return res;
+}
+mat4_t mat4_make_rotation_y(float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+
+    mat4_t res = mat4_make_identity();
+    res.m[0][0] = c;
+    res.m[0][2] = s;
+    res.m[2][0] = -s;
+    res.m[2][2] = c;
+
+    return res;
+}
+mat4_t mat4_make_rotation_z(float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+
+    mat4_t res = mat4_make_identity();
+    res.m[0][0] = c;
+    res.m[0][1] = -s;
+    res.m[1][0] = s;
+    res.m[1][1] = c;
+
+    return res;
+}
 
 vec4_t mat4_mult_vec4(mat4_t* m, vec4_t* v) {
     vec4_t res = {
