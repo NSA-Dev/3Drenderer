@@ -86,6 +86,8 @@ bool setup(void) {
         load_cube_mesh(); 
     }
 
+
+    mesh.translation.z = 5; // default "camera" depth
     initialize_rendering_mode();
     return true; 
 }
@@ -113,9 +115,21 @@ void process_input(void) {
                 mesh.rotation.x -= 0.1;
             // Zoom  TODO fix this (broken because of culling), add camera control limits
             else if(event.key.keysym.sym == SDLK_KP_PLUS)
-                camera_pos.z += 0.1;
+                mesh.translation.z += 0.1;
             else if(event.key.keysym.sym == SDLK_KP_MINUS)
-                camera_pos.z -= 0.1;
+                mesh.translation.z -= 0.1;
+            else if(event.key.keysym.sym == SDLK_w)
+                mesh.translation.y += 0.1;
+            else if(event.key.keysym.sym == SDLK_s)
+                mesh.translation.y -= 0.1;
+            else if(event.key.keysym.sym == SDLK_a)
+                mesh.translation.x += 0.1;
+            else if(event.key.keysym.sym == SDLK_d)
+                mesh.translation.x -= 0.1;
+            else if(event.key.keysym.sym == SDLK_q)
+                mesh.scale.x += 0.1;
+            else if(event.key.keysym.sym == SDLK_e)
+                mesh.scale.x -= 0.1;
             // Rendering modes
             else if(event.key.keysym.sym == SDLK_F1) {
                 rendering_mode.enable_wireframe = true;
@@ -160,12 +174,13 @@ void update(void) {
     if(time_to_wait > 0) SDL_Delay(time_to_wait);     
     previous_frame_time = SDL_GetTicks(); 
 
+    // TODO tie to kbd inputs
     // testing values (incremented each frame)
     // Note: rotations are not working
-    mesh.scale.x += 0.002;
-    mesh.translation.x += 0.01;
+   // mesh.scale.x += 0.002;
+   // mesh.translation.x += 0.01v; 
 
-    // create a scale matrix to multiply mesh verts
+    // create transform  matrices to multiply mesh verts later
     mat4_t scale_matrix = mat4_make_scale(mesh.scale.x, 
                                           mesh.scale.y, 
                                           mesh.scale.z
@@ -173,7 +188,12 @@ void update(void) {
     mat4_t translation_matrix = mat4_make_translation(mesh.translation.x,
                                                       mesh.translation.y,
                                                       mesh.translation.z
-                                                     );  
+                                                     );
+    
+    // could stand some revision I'd say
+    mat4_t rotation_x = mat4_make_rotation_x(mesh.rotation.x);
+    mat4_t rotation_y = mat4_make_rotation_y(mesh.rotation.y);
+    mat4_t rotation_z = mat4_make_rotation_z(mesh.rotation.z); 
     // reset triangle array (leaks mem?)
     triangles_to_render = NULL;
     int num_faces = array_length(mesh.faces);
@@ -209,14 +229,11 @@ void update(void) {
             temp = mat4_mult_vec4(&translation_matrix, &temp);
         
 
-            /* TODO  restructure to work with matrices and vec4_t (lec 14:22)
-            if(mesh.rotation.x != 0) vec3_rotate_x(&temp, mesh.rotation.x);
-            if(mesh.rotation.y != 0) vec3_rotate_y(&temp, mesh.rotation.y);
-            if(mesh.rotation.z != 0) vec3_rotate_z(&temp, mesh.rotation.z);
-            */
+            if(mesh.rotation.x != 0) temp = mat4_mult_vec4(&rotation_x, &temp);
+            if(mesh.rotation.y != 0) temp = mat4_mult_vec4(&rotation_y, &temp);
+            if(mesh.rotation.z != 0) temp = mat4_mult_vec4(&rotation_z, &temp);
 
-            // normaly factor in camera depth, but replaced with a manual offset
-            temp.z += -5; 
+ 
             // store tranformed result into array 
             transformed_vertices[j] = temp; 
         }
