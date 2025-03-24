@@ -219,20 +219,20 @@ void update(void) {
         // changed to vec4_t
         vec4_t transformed_vertices[3];
 
-        // Transformation step, note the type conversions
+        // Transformation step, note the type conversions (scale >rotate >translate)
         for(int j = 0; j < 3; j++) {
             // create a temp vector to apply transforms
             vec4_t temp = vec4_from_vec3(&face_verts[j]);
             
             //scale & translate
             temp = mat4_mult_vec4(&scale_matrix, &temp);
-            temp = mat4_mult_vec4(&translation_matrix, &temp);
         
 
             if(mesh.rotation.x != 0) temp = mat4_mult_vec4(&rotation_x, &temp);
             if(mesh.rotation.y != 0) temp = mat4_mult_vec4(&rotation_y, &temp);
             if(mesh.rotation.z != 0) temp = mat4_mult_vec4(&rotation_z, &temp);
 
+            temp = mat4_mult_vec4(&translation_matrix, &temp);
  
             // store tranformed result into array 
             transformed_vertices[j] = temp; 
