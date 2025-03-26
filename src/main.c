@@ -173,12 +173,7 @@ void update(void) {
     int time_to_wait = FTT - (SDL_GetTicks() - previous_frame_time);
     if(time_to_wait > 0) SDL_Delay(time_to_wait);     
     previous_frame_time = SDL_GetTicks(); 
-
-    // TODO tie to kbd inputs
-    // testing values (incremented each frame)
-    // Note: rotations are not working
-   // mesh.scale.x += 0.002;
-   // mesh.translation.x += 0.01v; 
+ 
 
     // create transform  matrices to multiply mesh verts later
     mat4_t scale_matrix = mat4_make_scale(mesh.scale.x, 
@@ -194,9 +189,20 @@ void update(void) {
     mat4_t rotation_x = mat4_make_rotation_x(mesh.rotation.x);
     mat4_t rotation_y = mat4_make_rotation_y(mesh.rotation.y);
     mat4_t rotation_z = mat4_make_rotation_z(mesh.rotation.z); 
+    
     // reset triangle array (leaks mem?)
     triangles_to_render = NULL;
     int num_faces = array_length(mesh.faces);
+
+    // precalc the world matrix before applying transoformations to the vertices
+    // (scale > rotate > translate)
+    mat4_t world_matrix = mat4_make_identity();
+    world_matrix = mat4_mult_mat4(&scale_matrix, &world_matrix);
+    world_matrix = mat4_mult_mat4(&rotation_x, &world_matrix);
+    world_matrix = mat4_mult_mat4(&rotation_y, &world_matrix);
+    world_matrix = mat4_mult_mat4(&rotation_z, &world_matrix);
+    world_matrix = mat4_mult_mat4(&translation_matrix, &world_matrix);
+
 
     /* Main transformation loop, goes through all of the faces and applies
      * transformation data */
@@ -219,21 +225,13 @@ void update(void) {
         // changed to vec4_t
         vec4_t transformed_vertices[3];
 
-        // Transformation step, note the type conversions (scale >rotate >translate)
+        // Transformation step, note the type conversions (scale > rotate > translate)
         for(int j = 0; j < 3; j++) {
             // create a temp vector to apply transforms
             vec4_t temp = vec4_from_vec3(&face_verts[j]);
             
             //scale & translate
-            temp = mat4_mult_vec4(&scale_matrix, &temp);
-        
-
-            if(mesh.rotation.x != 0) temp = mat4_mult_vec4(&rotation_x, &temp);
-            if(mesh.rotation.y != 0) temp = mat4_mult_vec4(&rotation_y, &temp);
-            if(mesh.rotation.z != 0) temp = mat4_mult_vec4(&rotation_z, &temp);
-
-            temp = mat4_mult_vec4(&translation_matrix, &temp);
- 
+            temp = mat4_mult_vec4(&world_matrix, &temp);
             // store tranformed result into array 
             transformed_vertices[j] = temp; 
         }
