@@ -88,7 +88,7 @@ bool setup(void) {
 
     // TODO fix 60 deg bug
     // Renderer settings
-    float fov = PI_CONST / 2.0; // NOTE 60 deg fov (PI/3) is squashed on my monitor 
+    float fov = PI_CONST / 3.0; // NOTE 60 deg fov (PI/3) is squashed on my monitor 
     float aspect = (float) win_h / (float) win_w;
     float znear = 0.1;
     float zfar = 100.0;
@@ -276,9 +276,12 @@ void update(void) {
             
             vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &transformed_vertices[j]);
                         
+            
+            // Note: on widescreen x is scalled height and y by width
+            // This is the opposite of what was shown in the materials.
             // scale projection into view
-            projected.x *= (win_w / 2.0);
-            projected.y *= (win_h / 2.0);
+            projected.x *= (win_h / 2.0); // was w
+            projected.y *= (win_w / 2.0); // was h
     
             // translate it to screen center
             projected.x += (win_w / 2.0); 
