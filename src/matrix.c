@@ -15,22 +15,6 @@ mat4_t mat4_make_identity(void) {
 }
 
 
-mat4_t mat4_make_perspective(float fov, float aspect, float znear, float zfar) {
-    
-    float fov_factor = 1 / tan (fov /2);
-    float z_factor = zfar / (zfar - znear); 
-
-    mat4_t res = {{{ 0 }}}; // init to zero
-
-    res.m[0][0] = aspect * fov_factor; 
-    res.m[1][2] = fov_factor; 
-    res.m[2][2] = z_factor;
-    res.m[2][3] = -(z_factor) * znear;
-    res.m[3][2] = 1.0; 
-
-    return res; 
-}
-
 mat4_t mat4_make_scale(float sx, float sy, float sz) {
     mat4_t scale = mat4_make_identity();
 
@@ -90,6 +74,24 @@ mat4_t mat4_make_rotation_z(float angle) {
     return res;
 }
 
+
+mat4_t mat4_make_perspective(float fov, float aspect, float znear, float zfar) {
+    
+    float fov_factor = 1 / tan(fov / 2);
+    float z_factor = zfar / (zfar - znear); 
+
+    mat4_t res = {{{ 0 }}}; // init to zero
+
+    res.m[0][0] = aspect * fov_factor; 
+    res.m[1][1] = 1 / fov_factor; 
+    res.m[2][2] = z_factor;
+    res.m[2][3] = -(z_factor) * znear;
+    res.m[3][2] = 1.0; 
+
+    return res; 
+}
+
+
 vec4_t mat4_mult_vec4(mat4_t* m, vec4_t* v) {
     vec4_t res = {
         .x = m->m[0][0] * v->x + m->m[0][1] * v->y + m->m[0][2] * v->z + m->m[0][3] * v->w,
@@ -115,4 +117,17 @@ mat4_t  mat4_mult_mat4(mat4_t* a, mat4_t* b) {
     }
 
    return res; 
+}
+
+vec4_t mat4_mult_vec4_project(mat4_t* m, vec4_t* v) {
+    vec4_t res = mat4_mult_vec4(m, v);
+
+    // Perform perspective divide via original z value backed up in w
+    if(res.w != 0.0) {
+        res.x /= res.w;
+        res.y /= res.w;
+        res.z /= res.w;
+    }
+
+    return res;
 }
