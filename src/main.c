@@ -10,14 +10,14 @@
 #include "matrix.h"
 
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
-
+#define  PI_CONST 3.14159
 /* .z rotations are disabled (they work, just did not add controls for them)*/
 
 
 triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
-float fov_factor = 640;
+mat4_t proj_matrix;
 char default_asset_dir[] = "./assets/na"; // Usage: manually specify model.
                                         // shouldn't be used until I implement parsing
                                         // colors / textures from .obj files,
@@ -66,7 +66,7 @@ bool setup(void) {
         return false;  
     }
 
-   //framebuffer texture
+   // framebuffer texture
    framebuffer_texture = SDL_CreateTexture(
         renderer,           // renderer responsible 
         SDL_PIXELFORMAT_ARGB8888,
@@ -79,13 +79,22 @@ bool setup(void) {
         return false;
    }
 
-   //if unable to load custom model, load default cube and print msg
+   // if unable to load custom model, load default cube and print msg
     if(!load_mesh_data(default_asset_dir)) {
         printf("Error: unable to read specified .obj file.\n");
         printf("Loading default model...\n");  
         load_cube_mesh(); 
     }
 
+    // TODO fix 60 deg bug
+    // Renderer settings
+    float fov = PI_CONST / 2.0; // NOTE 60 deg fov (PI/3) is squashed on my monitor 
+    float aspect = (float) win_h / (float) win_w;
+    float znear = 0.1;
+    float zfar = 100.0;
+    
+    // Init projection matrix 
+    proj_matrix =  mat4_make_perspective(fov, aspect, znear, zfar);
 
     mesh.translation.z = 5; // default "camera" depth
     initialize_rendering_mode();
@@ -159,14 +168,6 @@ void process_input(void) {
     }
 }
 
-// TODO find a better place for this function, remains in main.c for now
-vec2_t project(vec3_t* p) {
-    vec2_t projected = {
-        .x = (fov_factor * p->x) / p->z,
-        .y = (fov_factor * p->y) / p->z
-    };
-    return projected;
-}
 
 void update(void) {
     // FPS sync.  While not enough ticks passed (see FTT in display.h), delay the update
@@ -195,7 +196,7 @@ void update(void) {
     int num_faces = array_length(mesh.faces);
 
     // precalc the world matrix before applying transoformations to the vertices
-    // (scale > rotate > translate)
+    // (scale > rotate > translate) since translation changes origin of the object
     mat4_t world_matrix = mat4_make_identity();
     world_matrix = mat4_mult_mat4(&scale_matrix, &world_matrix);
     world_matrix = mat4_mult_mat4(&rotation_x, &world_matrix);
@@ -273,19 +274,24 @@ void update(void) {
         // Projection step
         for(int j = 0; j < 3; j++) {
             
-            //TODO implement vec4 support
-            // cast to vec3 before projecting (project expects vec3_t)
-            vec3_t current_v = vec3_from_vec4(&transformed_vertices[j]);
+            vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &transformed_vertices[j]);
+                        
+            // scale projection into view
+            projected.x *= (win_w / 2.0);
+            projected.y *= (win_h / 2.0);
+    
+            // translate it to screen center
+            projected.x += (win_w / 2.0); 
+            projected.y += (win_h / 2.0);
+            
 
-            // project (perspective divide)
-            vec2_t projected = project(&current_v);
-           
-            // scale and translate to the middle of the screen
-            projected.x += (win_w/2);
-            projected.y += (win_h/2); 
-
-            // pass into the array
-            projected_triangle.points[j] = projected; 
+            // Note to self:
+            // An explicit typecast is required here, since a compiler has no clue 
+            // about which type to use for this field
+            projected_triangle.points[j] = (vec2_t) {
+                .x = projected.x,
+                .y = projected.y
+            }; 
        }
         // add color data to the triangle
         projected_triangle.color = mesh_face.color;
