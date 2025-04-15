@@ -8,6 +8,7 @@
 #include "mesh.h"
 #include "array.h"
 #include "matrix.h"
+#include "light.h"
 
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 #define  PI_CONST 3.14159
@@ -24,11 +25,11 @@ char default_asset_dir[] = "./assets/na"; // Usage: manually specify model.
                                         // since face_t has been altered to include
                                         // color (uint32_t) field
 /*  vector  declr  */
-
-
 vec3_t camera_pos = { 0, 0, 0};
-// replace with the one below to fix controls (breaks culling)
-// vec3_t camera_pos = {.x = 0, .y = 0, .z = -5};
+// Test variable
+light_t global_light = {
+    .direction = {3.0, 15.0, 50.0}
+};
 
  
 bool setup(void);
@@ -86,9 +87,8 @@ bool setup(void) {
         load_cube_mesh(); 
     }
 
-    // TODO fix 60 deg bug
     // Renderer settings
-    float fov = PI_CONST / 3.0; // NOTE 60 deg fov (PI/3) is squashed on my monitor 
+    float fov = PI_CONST / 3.0; 
     float aspect = (float) win_h / (float) win_w;
     float znear = 0.1;
     float zfar = 100.0;
@@ -122,7 +122,7 @@ void process_input(void) {
                 mesh.rotation.x += 0.1;
             else if(event.key.keysym.sym == SDLK_DOWN)
                 mesh.rotation.x -= 0.1;
-            // Zoom  TODO fix this (broken because of culling), add camera control limits
+            // Zoom  TODO add camera control limits
             else if(event.key.keysym.sym == SDLK_KP_PLUS)
                 mesh.translation.z += 0.1;
             else if(event.key.keysym.sym == SDLK_KP_MINUS)
@@ -163,7 +163,11 @@ void process_input(void) {
             else if(event.key.keysym.sym == SDLK_F5)
                 rendering_mode.enable_culling = true;
             else if(event.key.keysym.sym == SDLK_F6)
-                rendering_mode.enable_culling = false; 
+                rendering_mode.enable_culling = false;
+            else if(event.key.keysym.sym == SDLK_F7) {
+               rendering_mode.enable_flat_shading = !rendering_mode.enable_flat_shading;
+            }
+                
             break; 
     }
 }
@@ -239,34 +243,67 @@ void update(void) {
 
         /* Culling check (clock wise orientation) */
         if(rendering_mode.enable_culling) {
-        //TODO account for vec4. 
-        //Grabing vertices (temp solution is to convert back to vec3_t)
+            //TODO account for vec4. 
+            //Grabing vertices (temp solution is to convert back to vec3_t)
             vec3_t a = vec3_from_vec4(&transformed_vertices[0]); /*   A  */
             vec3_t b = vec3_from_vec4(&transformed_vertices[1]); /*  / \  */
             vec3_t c = vec3_from_vec4(&transformed_vertices[2]); /* C---B */
         
-        // calculate (CA & BA) lengths
+            // calculate (CA & BA) lengths
             vec3_t c_a = vec3_sub(&c, &a);
             vec3_t b_a = vec3_sub(&b, &a);
             vec3_norm(&c_a);
             vec3_norm(&b_a); 
         
-        // Find their normal via cross product
+            // Find their normal via cross product 
             vec3_t normal = vec3_cross(&b_a, &c_a);
+            // (TODO factor ^^^^  out into a separate function, 
+            // since grabing normals is very useful).
         
-        // normalize it since only direction is relevant
+            // normalize it since only direction is relevant
             vec3_norm(&normal);
         
-        // Find camera ray by substracting camera pos from A
+            // Find camera ray by substracting camera pos from A
             vec3_t camera_ray = vec3_sub(&camera_pos, &a);
 
-        // check alignment between the normal and camera via dot prod
+            // check alignment between the normal and camera via dot prod
             float alignment_factor = vec3_dot(&normal, &camera_ray); 
         
-        // was <= 0, if not aligned with camera (looking away) skip it
+            // was <= 0, if not aligned with camera (looking away) skip it
             if(alignment_factor < 0) continue;
         }  
         
+        /* Flat shading */
+        if(rendering_mode.enable_flat_shading) {
+            // Same idea as culling grab face normal, calc its alignment to
+            // the light source in this case, and make a decision on shading 
+            // for this face. 
+
+            //Grabing vertices (temp solution is to convert back to vec3_t)
+            vec3_t a = vec3_from_vec4(&transformed_vertices[0]); /*   A  */
+            vec3_t b = vec3_from_vec4(&transformed_vertices[1]); /*  / \  */
+            vec3_t c = vec3_from_vec4(&transformed_vertices[2]); /* C---B */ 
+        
+            // calculate (CA & BA) lengths
+            vec3_t c_a = vec3_sub(&c, &a);
+            vec3_t b_a = vec3_sub(&b, &a);
+            vec3_norm(&c_a);
+            vec3_norm(&b_a); 
+        
+            // Find their normal via cross product 
+            vec3_t normal = vec3_cross(&b_a, &c_a);  
+            // normalize it since only direction is relevant
+            vec3_norm(&normal);
+            
+            // Find light position relative to the face
+            vec3_t light_ray = vec3_sub(&global_light.direction, &a);
+            float light_alignment = vec3_dot(&normal, &light_ray); 
+            mesh_face.color = light_apply_intensity(mesh_face.color, light_alignment); 
+
+        }
+
+
+
         //avg depth calculation for z sorting
         float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;  
         projected_triangle.avg_depth = avg_depth;
