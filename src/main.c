@@ -19,16 +19,16 @@ triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
 mat4_t proj_matrix;
-char default_asset_dir[] = "./assets/na"; // Usage: manually specify model.
+char default_asset_dir[] = "./assets/f22.obj"; // Usage: manually specify model.
                                         // shouldn't be used until I implement parsing
                                         // colors / textures from .obj files,
                                         // since face_t has been altered to include
                                         // color (uint32_t) field
 /*  vector  declr  */
 vec3_t camera_pos = { 0, 0, 0};
-// Test variable
+// Test variable TODO Move to light.c
 light_t global_light = {
-    .direction = {3.0, 15.0, 50.0}
+    .direction = {0, 0, 1}
 };
 
  
@@ -124,17 +124,17 @@ void process_input(void) {
                 mesh.rotation.x -= 0.1;
             // Zoom  TODO add camera control limits
             else if(event.key.keysym.sym == SDLK_KP_PLUS)
-                mesh.translation.z += 0.1;
+                mesh.translation.z += 0.0001;
             else if(event.key.keysym.sym == SDLK_KP_MINUS)
-                mesh.translation.z -= 0.1;
+                mesh.translation.z -= 0.0001;
             else if(event.key.keysym.sym == SDLK_w)
-                mesh.translation.y += 0.1;
+                mesh.translation.y += 0.0001;
             else if(event.key.keysym.sym == SDLK_s)
-                mesh.translation.y -= 0.1;
+                mesh.translation.y -= 0.0001;
             else if(event.key.keysym.sym == SDLK_a)
-                mesh.translation.x += 0.1;
+                mesh.translation.x += 0.0001;
             else if(event.key.keysym.sym == SDLK_d)
-                mesh.translation.x -= 0.1;
+                mesh.translation.x -= 0.0001;
             else if(event.key.keysym.sym == SDLK_q)
                 mesh.scale.x += 0.1;
             else if(event.key.keysym.sym == SDLK_e)
@@ -212,8 +212,10 @@ void update(void) {
     /* Main transformation loop, goes through all of the faces and applies
      * transformation data */
     for(int i = 0; i < num_faces; i++) {
+
         face_t mesh_face = mesh.faces[i];
-        
+        mesh_face.color = 0xFFFFFFFF; // draw white mesh
+
         vec3_t face_verts[3]; 
         // look inside the mesh.faces[i].(a/b/c)
         // find index corresponding to a
@@ -273,7 +275,7 @@ void update(void) {
             if(alignment_factor < 0) continue;
         }  
         
-        /* Flat shading */
+        /* Flat shading  TOO BRIGHT (SORTING ISSUE?)*/
         if(rendering_mode.enable_flat_shading) {
             // Same idea as culling grab face normal, calc its alignment to
             // the light source in this case, and make a decision on shading 
@@ -297,8 +299,8 @@ void update(void) {
             
             // Find light position relative to the face
             vec3_t light_ray = vec3_sub(&global_light.direction, &a);
-            float light_alignment = vec3_dot(&normal, &light_ray); 
-            mesh_face.color = light_apply_intensity(mesh_face.color, light_alignment); 
+            float ray_alignment = vec3_dot(&normal, &light_ray); 
+            mesh_face.color = light_apply_intensity(mesh_face.color, ray_alignment); 
 
         }
 
