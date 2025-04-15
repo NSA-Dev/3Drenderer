@@ -1,7 +1,11 @@
 #include "light.h"
 
 uint32_t light_apply_intensity(uint32_t original_color, float percentage) {
-    
+   
+    // lock between 0 & 1.0
+   if(percentage < 0) percentage = 0;
+   if(percentage > 1) percentage = 1;
+
     uint32_t alpha = (original_color & 0xFF000000);
     uint32_t red   = (original_color & 0x00FF0000) * percentage;
     uint32_t green = (original_color & 0x0000FF00) * percentage;
