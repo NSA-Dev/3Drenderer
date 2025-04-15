@@ -13,6 +13,7 @@ typedef struct {
     bool enable_vertices;
     bool enable_solid;
     bool enable_culling;
+    bool enable_flat_shading;
 } render_flags_t; 
 
 /* global declarations*/
