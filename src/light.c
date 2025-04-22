@@ -1,5 +1,10 @@
 #include "light.h"
 
+light_t global_light = {
+    .direction = {0, 0, 1}
+};
+
+
 uint32_t light_apply_intensity(uint32_t original_color, float percentage) {
    
     // lock between 0 & 1.0
@@ -32,3 +37,16 @@ uint32_t light_apply_intensity_bitwise(uint32_t original_color, float percentage
     return res;   
 }
 
+// shift the original position by unit 
+void adjust_global_light_pos(float x, float y, float z) {
+     global_light.direction.x += x;
+     global_light.direction.y += y;
+     global_light.direction.z += z; 
+};
+
+// overwrite position of the global light source
+void set_global_light_pos(float x, float y, float z) {
+     global_light.direction.x = x;
+     global_light.direction.y = y;
+     global_light.direction.z = z; 
+};
