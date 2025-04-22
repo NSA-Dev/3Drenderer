@@ -10,5 +10,6 @@ typedef struct {
 } light_t;
 
 uint32_t light_apply_intensity(uint32_t original_color, float percentage);
+uint32_t light_apply_intensity_bitwise(uint32_t original_color, float percentage);
 
 #endif

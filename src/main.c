@@ -20,10 +20,10 @@ bool is_running = false;
 int previous_frame_time = 0; // ms
 mat4_t proj_matrix;
 char default_asset_dir[] = "./assets/f22.obj"; // Usage: manually specify model.
-                                        // shouldn't be used until I implement parsing
-                                        // colors / textures from .obj files,
-                                        // since face_t has been altered to include
-                                        // color (uint32_t) field
+                                               // shouldn't be used until I implement parsing
+                                               // colors / textures from .obj files,
+                                               // since face_t has been altered to include
+                                               // color (uint32_t) field
 /*  vector  declr  */
 vec3_t camera_pos = { 0, 0, 0};
 // Test variable TODO Move to light.c
@@ -161,9 +161,10 @@ void process_input(void) {
                 rendering_mode.enable_solid = true; 
             }
             else if(event.key.keysym.sym == SDLK_F5)
-                rendering_mode.enable_culling = true;
+                rendering_mode.enable_culling = !rendering_mode.enable_culling;
             else if(event.key.keysym.sym == SDLK_F6)
-                rendering_mode.enable_culling = false;
+                // NOP for now 
+                 ;
             else if(event.key.keysym.sym == SDLK_F7) {
                rendering_mode.enable_flat_shading = !rendering_mode.enable_flat_shading;
             }
@@ -243,9 +244,8 @@ void update(void) {
             transformed_vertices[j] = temp; 
         }
 
-        /* Culling check (clock wise orientation) */
-        if(rendering_mode.enable_culling) {
-            //TODO account for vec4. 
+        /* Precaclculate data for Culling & Shading */
+
             //Grabing vertices (temp solution is to convert back to vec3_t)
             vec3_t a = vec3_from_vec4(&transformed_vertices[0]); /*   A  */
             vec3_t b = vec3_from_vec4(&transformed_vertices[1]); /*  / \  */
@@ -259,84 +259,64 @@ void update(void) {
         
             // Find their normal via cross product 
             vec3_t normal = vec3_cross(&b_a, &c_a);
-            // (TODO factor ^^^^  out into a separate function, 
-            // since grabing normals is very useful).
         
             // normalize it since only direction is relevant
             vec3_norm(&normal);
-        
-            // Find camera ray by substracting camera pos from A
-            vec3_t camera_ray = vec3_sub(&camera_pos, &a);
 
-            // check alignment between the normal and camera via dot prod
-            float alignment_factor = vec3_dot(&normal, &camera_ray); 
-        
-            // was <= 0, if not aligned with camera (looking away) skip it
-            if(alignment_factor < 0) continue;
-        }  
-        
-        /* Flat shading  TOO BRIGHT (SORTING ISSUE?)*/
-        if(rendering_mode.enable_flat_shading) {
-            // Same idea as culling grab face normal, calc its alignment to
-            // the light source in this case, and make a decision on shading 
-            // for this face. 
 
-            //Grabing vertices (temp solution is to convert back to vec3_t)
-            vec3_t a = vec3_from_vec4(&transformed_vertices[0]); /*   A  */
-            vec3_t b = vec3_from_vec4(&transformed_vertices[1]); /*  / \  */
-            vec3_t c = vec3_from_vec4(&transformed_vertices[2]); /* C---B */ 
-        
-            // calculate (CA & BA) lengths
-            vec3_t c_a = vec3_sub(&c, &a);
-            vec3_t b_a = vec3_sub(&b, &a);
-            vec3_norm(&c_a);
-            vec3_norm(&b_a); 
-        
-            // Find their normal via cross product 
-            vec3_t normal = vec3_cross(&b_a, &c_a);  
-            // normalize it since only direction is relevant
-            vec3_norm(&normal);
+       /* Rendering checks start here  */     
             
-            // Find light position relative to the face
-            vec3_t light_ray = vec3_sub(&global_light.direction, &a);
-            float ray_alignment = vec3_dot(&normal, &light_ray); 
-            mesh_face.color = light_apply_intensity(mesh_face.color, ray_alignment); 
+            // Culling  (clock wise orientation) 
+            if(rendering_mode.enable_culling) {
+                // Find camera ray by substracting camera pos from A
+                vec3_t camera_ray = vec3_sub(&camera_pos, &a);
 
-        }
+                // check alignment between the normal and camera via dot prod
+                float alignment_factor = vec3_dot(&normal, &camera_ray); 
+        
+                // was <= 0, if not aligned with camera (looking away) skip it
+                if(alignment_factor < 0) continue;
+            }
 
-
-
-        //avg depth calculation for z sorting
-        float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;  
-        projected_triangle.avg_depth = avg_depth;
+            // Shading
+            if(rendering_mode.enable_flat_shading) {
+                // Find light position relative to the face
+                float ray_alignment = -vec3_dot(&normal, &global_light.direction); 
+                mesh_face.color = light_apply_intensity(mesh_face.color, ray_alignment); 
+            }
     
-        // Projection step
-        for(int j = 0; j < 3; j++) {
+        /* Rest of the update  */    
+            //avg depth calculation for z sorting
+            float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;  
+            projected_triangle.avg_depth = avg_depth;
+    
+            // Projection step
+            for(int j = 0; j < 3; j++) {
             
-            vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &transformed_vertices[j]);
+                vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &transformed_vertices[j]);
                         
             
-            // Note: on widescreen x is scalled height and y by width
-            // This is the opposite of what was shown in the materials.
-            // scale projection into view
-            projected.x *= (win_h / 2.0); // was w
-            projected.y *= (win_w / 2.0); // was h
+                // Note: on widescreen x is scalled height and y by width
+                // This is the opposite of what was shown in the materials.
+                // scale projection into view
+                projected.x *= (win_h / 2.0); // was w
+                projected.y *= (win_w / 2.0); // was h
     
-            // translate it to screen center
-            projected.x += (win_w / 2.0); 
-            projected.y += (win_h / 2.0);
+                // translate it to screen center
+                projected.x += (win_w / 2.0); 
+                projected.y += (win_h / 2.0);
             
 
-            // Note to self:
-            // An explicit typecast is required here, since a compiler has no clue 
-            // about which type to use for this field
-            projected_triangle.points[j] = (vec2_t) {
-                .x = projected.x,
-                .y = projected.y
-            }; 
-       }
-        // add color data to the triangle
-        projected_triangle.color = mesh_face.color;
+                // Note to self:
+                // An explicit typecast is required here, since a compiler has no clue 
+                // about which type to use for this field
+                projected_triangle.points[j] = (vec2_t) {
+                    .x = projected.x,
+                    .y = projected.y
+                }; 
+            }
+            // add color data to the triangle
+            projected_triangle.color = mesh_face.color;
         
         // save calculated data for rendering 
         array_push(triangles_to_render, projected_triangle);

@@ -77,6 +77,8 @@ void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32
     }
 }
 
+
+// study algorithms bruh
 void swap_triangle_t(triangle_t* a, triangle_t* b) {
     triangle_t temp = *a;
     *a = *b;
@@ -89,7 +91,7 @@ int partition(triangle_t* array, int low, int high) {
 
 
     for(int j = low; j < high; j++) {
-        if(array[j].avg_depth <= pivot) {
+        if(array[j].avg_depth >= pivot) {
             swap_triangle_t(&array[i], &array[j]);
             i++;
         }
