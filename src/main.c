@@ -26,10 +26,6 @@ char default_asset_dir[] = "./assets/f22.obj"; // Usage: manually specify model.
                                                // color (uint32_t) field
 /*  vector  declr  */
 vec3_t camera_pos = { 0, 0, 0};
-// Test variable TODO Move to light.c
-light_t global_light = {
-    .direction = {0, 0, 1}
-};
 
  
 bool setup(void);
