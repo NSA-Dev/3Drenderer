@@ -14,6 +14,8 @@ typedef struct {
     bool enable_solid;
     bool enable_culling;
     bool enable_flat_shading;
+    bool enable_textured;
+    bool enable_textured_wire; 
 } render_flags_t; 
 
 /* global declarations*/

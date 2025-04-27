@@ -159,9 +159,10 @@ void process_input(void) {
             else if(event.key.keysym.sym == SDLK_F5)
                 rendering_mode.enable_culling = !rendering_mode.enable_culling;
             else if(event.key.keysym.sym == SDLK_F6)
-                // NOP for now 
-                 ;
-            else if(event.key.keysym.sym == SDLK_F7) {
+                rendering_mode.enable_textured_wire = !rendering_mode.enable_textured_wire; 
+            else if(event.key.keysym.sym == SDLK_F7)
+                rendering_mode.enable_textured = !rendering_mode.enable_textured;
+            else if(event.key.keysym.sym == SDLK_F8) {
                rendering_mode.enable_flat_shading = !rendering_mode.enable_flat_shading;
             }
                 
@@ -295,11 +296,13 @@ void update(void) {
                 // Note: on widescreen x is scalled height and y by width
                 // This is the opposite of what was shown in the materials.
                 // scale projection into view
-                projected.x *= (win_h / 2.0); // was w
-                projected.y *= (win_w / 2.0); // was h
+                projected.x *= -1 * (win_h / 2.0); // was w
+                projected.y *= -1 * (win_w / 2.0); // was h
                 
-                // Inverting y (model values come bottom up, which is the opposite of screen space y)
-                projected.y *= -1.0; 
+                // Note -1 in the lines above. 
+                // Inverting y & x is the necessary
+                // (model values come bottom up, which is the opposite of screen space y) 
+                // the same is  true for x. This has to do with their orientation in .obj files 
 
                 // translate it to screen center
                 projected.x += (win_w / 2.0); 
@@ -345,13 +348,13 @@ void render(void) {
     for(int i = 0; i < polycount; i++) {
         triangle_t triangle = triangles_to_render[i];
         if(rendering_mode.enable_vertices) { 
-        draw_rect(triangle.points[0].x - 3, triangle.points[0].y - 3, 4, 4, COLOR_RED); 
-        draw_rect(triangle.points[1].x - 3, triangle.points[1].y - 3, 4, 4, COLOR_RED); 
-        draw_rect(triangle.points[2].x - 3, triangle.points[2].y - 3, 4, 4, COLOR_RED);
+            draw_rect(triangle.points[0].x - 3, triangle.points[0].y - 3, 4, 4, COLOR_RED); 
+            draw_rect(triangle.points[1].x - 3, triangle.points[1].y - 3, 4, 4, COLOR_RED); 
+            draw_rect(triangle.points[2].x - 3, triangle.points[2].y - 3, 4, 4, COLOR_RED);
         }
 
         if(rendering_mode.enable_solid) {
-        draw_filled_triangle(
+            draw_filled_triangle(
                 triangle.points[0].x, triangle.points[0].y,
                 triangle.points[1].x, triangle.points[1].y,
                 triangle.points[2].x, triangle.points[2].y,
@@ -360,13 +363,23 @@ void render(void) {
         }
 
         if(rendering_mode.enable_wireframe) {
-        draw_triangle(
+            draw_triangle(
                 triangle.points[0].x, triangle.points[0].y,
                 triangle.points[1].x, triangle.points[1].y,
                 triangle.points[2].x, triangle.points[2].y,
                 COLOR_GRAY                  
                 );
-        } 
+        }
+       if(rendering_mode.enable_textured || rendering_mode.enable_textured_wire) { 
+        // TODO change to match function call (unimplemented)
+        /*   draw_textured_triangle(
+                triangle.points[0].x, triangle.points[0].y,
+                triangle.points[1].x, triangle.points[1].y,
+                triangle.points[2].x, triangle.points[2].y,
+                triangle.color                  
+                );
+        */        
+       } 
     } 
 
     array_free(triangles_to_render); 

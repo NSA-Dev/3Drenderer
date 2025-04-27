@@ -65,7 +65,9 @@ void initialize_rendering_mode(void) {
    rendering_mode.enable_vertices = false;
    rendering_mode.enable_solid = true;
    rendering_mode.enable_culling = true;
-   rendering_mode.enable_flat_shading = false;   
+   rendering_mode.enable_flat_shading = false;
+   rendering_mode.enable_textured = false;
+   rendering_mode.enable_textured_wire = false;   
 }
 
 void draw_grid(int spacing, uint32_t color) {

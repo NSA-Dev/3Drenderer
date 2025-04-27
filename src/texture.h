@@ -4,7 +4,7 @@
 typedef struct {
     float u;
     float v;
-} text2_t;
+} tex2_t;
 
 extern int texture_width;
 extern int texture_height; 
