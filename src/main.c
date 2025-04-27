@@ -297,7 +297,10 @@ void update(void) {
                 // scale projection into view
                 projected.x *= (win_h / 2.0); // was w
                 projected.y *= (win_w / 2.0); // was h
-    
+                
+                // Inverting y (model values come bottom up, which is the opposite of screen space y)
+                projected.y *= -1.0; 
+
                 // translate it to screen center
                 projected.x += (win_w / 2.0); 
                 projected.y += (win_h / 2.0);
