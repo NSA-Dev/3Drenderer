@@ -9,6 +9,8 @@
 #include "array.h"
 #include "matrix.h"
 #include "light.h"
+#include "texture.h"
+#include "triangle.h"
 
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 #define  PI_CONST 3.14159
@@ -19,7 +21,7 @@ triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
 mat4_t proj_matrix;
-char default_asset_dir[] = "./assets/f22.obj"; // Usage: manually specify model.
+char default_asset_dir[] = "./assets/none.obj"; // Usage: manually specify model.
                                                // shouldn't be used until I implement parsing
                                                // colors / textures from .obj files,
                                                // since face_t has been altered to include
@@ -81,7 +83,11 @@ bool setup(void) {
         printf("Error: unable to read specified .obj file.\n");
         printf("Loading default model...\n");  
         load_cube_mesh(); 
-    }
+        //load default cube texture
+        mesh_texture = (uint32_t*)REDBRICK_TEXTURE; // mesh_texture (global) - defined in texture.h 
+        texture_width = 64;
+        texture_height = 64; 
+    }   
 
     // Renderer settings
     float fov = PI_CONST / 3.0; 
@@ -94,6 +100,8 @@ bool setup(void) {
 
     mesh.translation.z = 5; // default "camera" depth
     initialize_rendering_mode();
+    
+    
     return true; 
 }
 
@@ -158,10 +166,14 @@ void process_input(void) {
             }
             else if(event.key.keysym.sym == SDLK_F5)
                 rendering_mode.enable_culling = !rendering_mode.enable_culling;
-            else if(event.key.keysym.sym == SDLK_F6)
-                rendering_mode.enable_textured_wire = !rendering_mode.enable_textured_wire; 
-            else if(event.key.keysym.sym == SDLK_F7)
-                rendering_mode.enable_textured = !rendering_mode.enable_textured;
+            else if(event.key.keysym.sym == SDLK_F6) {
+                if(mesh_texture != NULL) 
+                    rendering_mode.enable_textured_wire = !rendering_mode.enable_textured_wire; 
+            }    
+            else if(event.key.keysym.sym == SDLK_F7) {
+                if(mesh_texture != NULL)
+                    rendering_mode.enable_textured = !rendering_mode.enable_textured;
+            }
             else if(event.key.keysym.sym == SDLK_F8) {
                rendering_mode.enable_flat_shading = !rendering_mode.enable_flat_shading;
             }
@@ -225,6 +237,15 @@ void update(void) {
         
         // prepare a temp triangle_t for passing into triangles_to_render[]
         triangle_t projected_triangle;
+
+        // add texture data from mesh_face to the temp variable before future transformations
+        projected_triangle.texcoords[0].u = mesh_face.a_uv.u; 
+        projected_triangle.texcoords[0].v = mesh_face.a_uv.v;
+        projected_triangle.texcoords[1].u = mesh_face.b_uv.u;
+        projected_triangle.texcoords[1].v = mesh_face.b_uv.v;
+        projected_triangle.texcoords[2].u = mesh_face.c_uv.u;
+        projected_triangle.texcoords[2].v = mesh_face.c_uv.v;  
+         
 
         // prepare an array to store tranformations for intermediate culling check
         // changed to vec4_t
@@ -370,15 +391,13 @@ void render(void) {
                 COLOR_GRAY                  
                 );
         }
-       if(rendering_mode.enable_textured || rendering_mode.enable_textured_wire) { 
-        // TODO change to match function call (unimplemented)
-        /*   draw_textured_triangle(
-                triangle.points[0].x, triangle.points[0].y,
-                triangle.points[1].x, triangle.points[1].y,
-                triangle.points[2].x, triangle.points[2].y,
-                triangle.color                  
-                );
-        */        
+       if(rendering_mode.enable_textured || rendering_mode.enable_textured_wire) {
+           draw_textured_triangle(
+                triangle.points[0].x, triangle.points[0].y, triangle.texcoords[0].u, triangle.texcoords[0].v,
+                triangle.points[1].x, triangle.points[1].y, triangle.texcoords[1].u, triangle.texcoords[1].v,
+                triangle.points[2].x, triangle.points[2].y, triangle.texcoords[2].u, triangle.texcoords[2].v,
+                &triangle.color // dummy variable to comply with the signature                 
+                );        
        } 
     } 
 
