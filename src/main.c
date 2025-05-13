@@ -118,63 +118,63 @@ void process_input(void) {
             if(event.key.keysym.sym == SDLK_ESCAPE)
                 is_running = false;
             // Rotations
-            else if (event.key.keysym.sym == SDLK_LEFT)
+             if (event.key.keysym.sym == SDLK_LEFT)
                 mesh.rotation.y += 0.1;
-            else if(event.key.keysym.sym == SDLK_RIGHT)
+             if(event.key.keysym.sym == SDLK_RIGHT)
                 mesh.rotation.y -= 0.1;
-            else if (event.key.keysym.sym == SDLK_UP)
+             if (event.key.keysym.sym == SDLK_UP)
                 mesh.rotation.x += 0.1;
-            else if(event.key.keysym.sym == SDLK_DOWN)
+             if(event.key.keysym.sym == SDLK_DOWN)
                 mesh.rotation.x -= 0.1;
             // Zoom  TODO add camera control limits
-            else if(event.key.keysym.sym == SDLK_KP_PLUS)
+             if(event.key.keysym.sym == SDLK_KP_PLUS)
                 mesh.translation.z += 0.0001;
-            else if(event.key.keysym.sym == SDLK_KP_MINUS)
+             if(event.key.keysym.sym == SDLK_KP_MINUS)
                 mesh.translation.z -= 0.0001;
-            else if(event.key.keysym.sym == SDLK_w)
+             if(event.key.keysym.sym == SDLK_w)
                 mesh.translation.y += 0.0001;
-            else if(event.key.keysym.sym == SDLK_s)
+             if(event.key.keysym.sym == SDLK_s)
                 mesh.translation.y -= 0.0001;
-            else if(event.key.keysym.sym == SDLK_a)
+             if(event.key.keysym.sym == SDLK_a)
                 mesh.translation.x += 0.0001;
-            else if(event.key.keysym.sym == SDLK_d)
+             if(event.key.keysym.sym == SDLK_d)
                 mesh.translation.x -= 0.0001;
-            else if(event.key.keysym.sym == SDLK_q)
+             if(event.key.keysym.sym == SDLK_q)
                 mesh.scale.x += 0.1;
-            else if(event.key.keysym.sym == SDLK_e)
+             if(event.key.keysym.sym == SDLK_e)
                 mesh.scale.x -= 0.1;
             // Rendering modes
-            else if(event.key.keysym.sym == SDLK_F1) {
+             if(event.key.keysym.sym == SDLK_F1) {
                 rendering_mode.enable_wireframe = true;
                 rendering_mode.enable_vertices = true;
                 rendering_mode.enable_solid = false;
             }    
-            else if (event.key.keysym.sym == SDLK_F2) {
+             if (event.key.keysym.sym == SDLK_F2) {
                 rendering_mode.enable_wireframe = true;
                 rendering_mode.enable_vertices = false;
                 rendering_mode.enable_solid = false; 
             }
-            else if(event.key.keysym.sym == SDLK_F3) {
+             if(event.key.keysym.sym == SDLK_F3) {
                 rendering_mode.enable_wireframe = false;
                 rendering_mode.enable_vertices = false;
                 rendering_mode.enable_solid = true; 
             }
-            else if (event.key.keysym.sym == SDLK_F4) {
+             if (event.key.keysym.sym == SDLK_F4) {
                 rendering_mode.enable_wireframe = true;
                 rendering_mode.enable_vertices = false;
                 rendering_mode.enable_solid = true; 
             }
-            else if(event.key.keysym.sym == SDLK_F5)
+             if(event.key.keysym.sym == SDLK_F5)
                 rendering_mode.enable_culling = !rendering_mode.enable_culling;
-            else if(event.key.keysym.sym == SDLK_F6) {
+             if(event.key.keysym.sym == SDLK_F6) {
                 if(mesh_texture != NULL) 
                     rendering_mode.enable_textured_wire = !rendering_mode.enable_textured_wire; 
             }    
-            else if(event.key.keysym.sym == SDLK_F7) {
+             if(event.key.keysym.sym == SDLK_F7) {
                 if(mesh_texture != NULL)
                     rendering_mode.enable_textured = !rendering_mode.enable_textured;
             }
-            else if(event.key.keysym.sym == SDLK_F8) {
+             if(event.key.keysym.sym == SDLK_F8) {
                rendering_mode.enable_flat_shading = !rendering_mode.enable_flat_shading;
             }
                 
@@ -349,11 +349,7 @@ void update(void) {
     // sort triangles by average depth for painters algorithm
     int length = array_length(triangles_to_render);
     qsort_depth(triangles_to_render, 0, length - 1);
-   
-   // DEBUG 
-   // for(int i = 0; i < length; i++) {
-   //     printf("Depth after sort[%d]: %.3f\n", i, triangles_to_render[i].avg_depth);
-   // }
+  
 
     // check rotations for overflow
     if(mesh.rotation.x > R_LIMIT) mesh.rotation.x -= R_LIMIT;
