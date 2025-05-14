@@ -5,7 +5,7 @@
 #include "vector.h"
 #include "texture.h"
 
-// used for storing vertex indices
+// struct used for storing vertex indices, color and texture information for each face 
 typedef struct {
     int a;
     int b;
@@ -16,7 +16,7 @@ typedef struct {
     uint32_t color;
 } face_t; 
 
-// used for storing actual (x,y) coordinates for each vert
+// struct used for storing actual (x,y) coordinates for each vert
 typedef struct {
     vec2_t points[3];
     tex2_t texcoords[3]; 

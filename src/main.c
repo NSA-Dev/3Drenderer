@@ -97,8 +97,12 @@ bool setup(void) {
     
     // Init projection matrix 
     proj_matrix =  mat4_make_perspective(fov, aspect, znear, zfar);
-
     mesh.translation.z = 5; // default "camera" depth
+
+
+    // Texture loading
+    mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded) 
+
     initialize_rendering_mode();
     
     
@@ -143,7 +147,8 @@ void process_input(void) {
                 mesh.scale.x += 0.1;
              if(event.key.keysym.sym == SDLK_e)
                 mesh.scale.x -= 0.1;
-            // Rendering modes
+            //TODO refactor into enum to simplify
+            //Rendering modes
              if(event.key.keysym.sym == SDLK_F1) {
                 rendering_mode.enable_wireframe = true;
                 rendering_mode.enable_vertices = true;

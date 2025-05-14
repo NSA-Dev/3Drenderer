@@ -1,11 +1,7 @@
+#include <stdlib.h>
 #include "triangle.h"
 #include "display.h"
-
-void int_swap(int* a, int* b) {
-    int temp = *b;  
-    *b = *a;
-    *a = temp; 
-}
+#include "swap.h"
 
 void fill_upper_half(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
     // y = mx + b - but inverse slope is needed
@@ -71,9 +67,9 @@ void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32
         int mX = (x2-x0) * (y1-y0) / (float)(y2 - y0) + x0;
 
     // draw upper half of the triangle
-        fill_upper_half(x0, y0, x1, y1, mX, mY, color); // WIP
+        fill_upper_half(x0, y0, x1, y1, mX, mY, color); 
     // draw lower half of the triangle
-        fill_lower_half(x1, y1, mX, mY, x2, y2, color); // WIP
+        fill_lower_half(x1, y1, mX, mY, x2, y2, color); 
     }
 }
 
@@ -82,12 +78,63 @@ void draw_textured_triangle(
         int x0, int y0, float u0, float v0,  
         int x1, int y1, float u1, float v1,       
         int x2, int y2, float u2, float v2,
-        uint32_t* texture) 
-{
-   // TODO Implement function
+        uint32_t* texture) {
+
+    // only difference from regular draw_filledTriangle is going pixel by pixel 
+    // instead of connecting by drawLine()
     
+    // sort by y (y0 < y1 < y2) to ensure correct vertex orientation
+    if(y0 > y1) {
+        int_swap(&y0, &y1);
+        int_swap(&x0, &x1);
+        float_swap(&u0, &u1);
+        float_swap (&v0, &v1); 
+    }
+
+    if(y1 > y2) {
+        int_swap(&y1, &y2);
+        int_swap(&x1, &x2);
+        float_swap(&u1, &u2);
+        float_swap(&v1, &v2); 
+    }
+   // extra check to avoid incorrect sorting  
+    if (y0 > y1) { 
+        int_swap(&y0, &y1);
+        int_swap(&x0, &x1);
+        float_swap(&u0, &u1);
+        float_swap (&v0, &v1); 
+    }
     
-    ; 
+
+  // We begin by finding slopes for left & right leg to determine how far we need to go
+  // in Y direction, and then calculate start & end of the current scanline (xStart, Xend)
+  // After we have correct coordinates, we loop the line pixel by pixel while grabbing texture colors
+  // and assigning them to current pixel. 
+
+  // determine inverse slope starting at y0 (topmost vertex) 
+  float invSlope_L = 0;
+  float invSlope_R = 0;
+
+  if(y1-y0 != 0) invSlope_L = (float) (x1 - x0) / abs(y1 - y0); // left leg slope 
+  if(y2-y0 != 0) invSlope_R = (float)(x2 - x0) / abs(y2 - y0); // right leg slope 
+  
+  
+  // draw only in case if we vertical distance != 0
+  if(y0 != y1) {
+
+    // I'd argue this interval should be inclusive   
+    for(int y = y0;  y <= y1; y++) { 
+        int xStart = x1 + (y - y1) * invSlope_L;
+        int xEnd = x0 + (y - y0) * invSlope_R;  
+    
+        if(xEnd < xStart) int_swap(&xStart, &xEnd); // check if we are going L -> R swap otherwise
+    
+        for(int x = xStart; x <= xEnd; x++) {
+            // grab texture data pixel by pixel
+            draw_pixel(x, y, 0xFFFF00FF /*texture data color*/);  
+        }
+    }  
+  }  
 }
 
 void swap_triangle_t(triangle_t* a, triangle_t* b) {
