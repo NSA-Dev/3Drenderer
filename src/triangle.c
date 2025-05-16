@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <math.h>
 #include "triangle.h"
 #include "display.h"
 #include "swap.h"
@@ -105,11 +106,12 @@ void draw_textured_triangle(
         float_swap (&v0, &v1); 
     }
     
-
+  // UPPER HALF
   // We begin by finding slopes for left & right leg to determine how far we need to go
   // in Y direction, and then calculate start & end of the current scanline (xStart, Xend)
   // After we have correct coordinates, we loop the line pixel by pixel while grabbing texture colors
   // and assigning them to current pixel. 
+
 
   // determine inverse slope starting at y0 (topmost vertex) 
   float invSlope_L = 0;
@@ -119,22 +121,47 @@ void draw_textured_triangle(
   if(y2-y0 != 0) invSlope_R = (float)(x2 - x0) / abs(y2 - y0); // right leg slope 
   
   
-  // draw only in case if we vertical distance != 0
-  if(y0 != y1) {
-
-    // I'd argue this interval should be inclusive   
+  // draw only in case if vertical distance != 0
+  if(y1 - y0 != 0) {
+   
     for(int y = y0;  y <= y1; y++) { 
-        int xStart = x1 + (y - y1) * invSlope_L;
-        int xEnd = x0 + (y - y0) * invSlope_R;  
+        int xStart =(int)round(x1 + (y - y1) * invSlope_L);
+        int xEnd = (int)round(x0 + (y - y0) * invSlope_R);  
     
         if(xEnd < xStart) int_swap(&xStart, &xEnd); // check if we are going L -> R swap otherwise
     
-        for(int x = xStart; x <= xEnd; x++) {
+        for(int x = xStart; x < xEnd; x++) {
             // grab texture data pixel by pixel
             draw_pixel(x, y, 0xFFFF00FF /*texture data color*/);  
         }
     }  
-  }  
+  }
+  
+  // LOWER HALF 
+  invSlope_L = 0;
+  invSlope_R = 0;
+
+  if(y2-y1 != 0) invSlope_L = (float) (x2 - x1) / abs(y2 - y1); // left leg slope 
+  if(y2-y0 != 0) invSlope_R = (float)(x2 - x0) / abs(y2 - y0); // right leg slope 
+  
+  
+  // draw only in case if vertical distance != 0
+  if(y2 - y1 != 0) {
+
+    // I'd argue this interval should be inclusive   
+    for(int y = y1;  y <= y2; y++) { 
+        int xStart =(int)round(x1 + (y - y1) * invSlope_L);
+        int xEnd = (int)round(x0 + (y - y0) * invSlope_R);  
+    
+        if(xEnd < xStart) int_swap(&xStart, &xEnd); // check if we are going L -> R swap otherwise
+    
+        for(int x = xStart; x < xEnd; x++) {
+            // grab texture data pixel by pixel
+            draw_pixel(x, y, 0xFFFF00FF /*texture data color*/);  
+        }
+    }  
+  }
+
 }
 
 void swap_triangle_t(triangle_t* a, triangle_t* b) {
