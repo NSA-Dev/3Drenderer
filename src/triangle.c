@@ -75,6 +75,38 @@ void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32
 }
 
 
+// TODO copy the illustration from the notes
+
+vec3_t computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p) {
+   // find vectors in between the vertices & p
+   vec2_t ac = vec2_sub(c, a);
+   vec2_t ab = vec2_sub(b, a);
+   vec2_t ap = vec2_sub(p, a);
+   vec2_t pc = vec2_sub(c, p);
+   vec2_t pb = vec2_sub(b, p); 
+
+   float area_ABC = vec2_cross(&ac, &ab);
+   float alpha = vec2_cross(&pc, &pb) / area_ABC;
+   float beta = vec2_cross(&ac, &ap) / area_ABC;
+   float gamma = 1 - (alpha + beta); 
+
+   // package everything into vec3
+   vec3_t weights = {alpha, beta, gamma};
+ 
+   return weights;     
+}
+void draw_texel(
+        int x, int y, uint32_t* texture,
+        vec2_t* a, vec2_t* b, vec2_t* c,
+        float*  u0, float* v0, float* u1, float* v1,
+        float* u2, float* v2 
+        ) {
+
+    // TODO implement the function 
+    return;
+}
+
+// I am using round() in contrast to the lecture materials, might cause issues down the line
 void draw_textured_triangle(
         int x0, int y0, float u0, float v0,  
         int x1, int y1, float u1, float v1,       
@@ -105,6 +137,12 @@ void draw_textured_triangle(
         float_swap(&u0, &u1);
         float_swap (&v0, &v1); 
     }
+
+  // put vertex data in vec2_t for later usage
+  vec2_t a = {x0, y0};
+  vec2_t b = {x1, y1};
+  vec2_t c = {x2, y2};   
+
     
   // UPPER HALF
   // We begin by finding slopes for left & right leg to determine how far we need to go
@@ -125,14 +163,14 @@ void draw_textured_triangle(
   if(y1 - y0 != 0) {
    
     for(int y = y0;  y <= y1; y++) { 
-        int xStart =(int)round(x1 + (y - y1) * invSlope_L);
+        int xStart = (int)round(x1 + (y - y1) * invSlope_L); // added rounding for consistency (same for bot)
         int xEnd = (int)round(x0 + (y - y0) * invSlope_R);  
     
         if(xEnd < xStart) int_swap(&xStart, &xEnd); // check if we are going L -> R swap otherwise
     
         for(int x = xStart; x < xEnd; x++) {
             // grab texture data pixel by pixel
-            draw_pixel(x, y, 0xFFFF00FF /*texture data color*/);  
+             draw_texel(x, y, texture, &a, &b, &c, u0, v0, u1, v1, u2, v2);  
         }
     }  
   }
@@ -157,7 +195,7 @@ void draw_textured_triangle(
     
         for(int x = xStart; x < xEnd; x++) {
             // grab texture data pixel by pixel
-            draw_pixel(x, y, 0xFFFF00FF /*texture data color*/);  
+            draw_texel(x, y, texture, &a, &b, &c, u0, v0, u1, v1, u2, v2);  
         }
     }  
   }
@@ -169,6 +207,7 @@ void swap_triangle_t(triangle_t* a, triangle_t* b) {
     *a = *b;
     *b = temp; 
 }
+
 
 int partition(triangle_t* array, int low, int high) {
     float pivot = array[high].avg_depth;

@@ -34,6 +34,14 @@ void draw_textured_triangle(
         int x2, int y2, float u2, float v2,
         uint32_t* texture 
         );
+void draw_texel(
+        int x, int y, uint32_t* texture,
+        vec2_t* a, vec2_t* b, vec2_t* c,
+        float*  u0, float* v0, float* u1, float* v1,
+        float* u2, float* v2 
+        ); // draw correct pixel color based on uv coords mapped to the triangle_t
+
+float computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p); 
 // sorting
 int partition(triangle_t* array, int low, int high); 
 void qsort_depth(triangle_t* array, int low, int high); 
