@@ -50,6 +50,12 @@ void vec2_norm(vec2_t* v) {
     *v = vec2_div(v, z); 
 }
 
+
+// fake cross product that returns a scalar
+float vec2_cross(vec2_t* a, vec2_t* b) { 
+    return (a->x * b->y) - (a->y * b->x);
+}
+
 // 3D vector functions
 float vec3_mag(vec3_t* v) {
     float res = sqrtf(v->x * v->x 
