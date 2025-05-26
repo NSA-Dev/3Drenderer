@@ -41,7 +41,7 @@ void draw_texel(
         float* u2, float* v2 
         ); // draw correct pixel color based on uv coords mapped to the triangle_t
 
-float computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p); 
+vec3_t computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p) ; 
 // sorting
 int partition(triangle_t* array, int low, int high); 
 void qsort_depth(triangle_t* array, int low, int high); 

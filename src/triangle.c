@@ -1,8 +1,12 @@
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 #include "triangle.h"
 #include "display.h"
 #include "swap.h"
+
+uint64_t globalCount = 0;
+int maxIndex = 4096; 
 
 void fill_upper_half(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
     // y = mx + b - but inverse slope is needed
@@ -75,7 +79,21 @@ void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32
 }
 
 
-// TODO copy the illustration from the notes
+///////////////////////////////////////////////////////////////////////////////
+// Return the barycentric weights alpha, beta, and gamma for point p
+///////////////////////////////////////////////////////////////////////////////
+//
+//         (B)
+//         /|\
+//        / | \
+//       /  |  \
+//      /  (P)  \
+//     /  /   \  \
+//    / /       \ \
+//   //           \\
+//  (A)------------(C)
+//
+///////////////////////////////////////////////////////////////////////////////
 
 vec3_t computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p) {
    // find vectors in between the vertices & p
@@ -86,6 +104,9 @@ vec3_t computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p) {
    vec2_t pb = vec2_sub(b, p); 
 
    float area_ABC = vec2_cross(&ac, &ab);
+   
+   //if(area_ABC <=0) return (vec3_t) {0, 0, 0};
+   
    float alpha = vec2_cross(&pc, &pb) / area_ABC;
    float beta = vec2_cross(&ac, &ap) / area_ABC;
    float gamma = 1 - (alpha + beta); 
@@ -95,15 +116,50 @@ vec3_t computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p) {
  
    return weights;     
 }
+
+
 void draw_texel(
         int x, int y, uint32_t* texture,
         vec2_t* a, vec2_t* b, vec2_t* c,
         float*  u0, float* v0, float* u1, float* v1,
         float* u2, float* v2 
-        ) {
+) {
+	
+	// TODO DEBUG
+	globalCount++;
+	printf("drawing texel %ld\n", globalCount);
+	
+    vec2_t pointP = {x, y};
+    vec3_t weights = computeBarycentric2D(a, b, c, &pointP); 
 
-    // TODO implement the function 
-    return;
+    float alpha = weights.x;
+    float beta = weights.y;
+    float gamma = weights.z; 
+
+	printf("Barycentric weights: a: %.3f, b: %.3f, g: %.3f\n", alpha, beta, gamma); 
+	
+    float interU, interV; 
+    // get interpolated uv coords, by weighing them with alpha, beta & gamma
+    interU = (*u0) * alpha + (*u1) * beta + (*u2) * gamma; 
+    interV = (*v0) * alpha + (*v1) * beta + (*v2) * gamma; 
+    
+
+	printf("Interpolated: u %.3f  v %.3f\n", interU, interV); 
+
+    // scale uv to texture H x W 
+    int textureX = abs((int)(interU * texture_width));
+    int textureY = abs((int)(interV * texture_height)); 
+
+	printf("Computed XY: (%d, %d)\n", textureX, textureY);
+
+	// clamp the array index before passing to the draw_pixel
+	int texIndex = ((texture_width * textureY) + textureX) % (texture_width * texture_height);
+	printf("Attempting index: %d (Limit: %d)\n", texIndex, maxIndex); 
+	draw_pixel(x, y, texture[texIndex]);
+	
+	
+	printf("texel drawn\n\n\n");
+     
 }
 
 // I am using round() in contrast to the lecture materials, might cause issues down the line
@@ -170,7 +226,7 @@ void draw_textured_triangle(
     
         for(int x = xStart; x < xEnd; x++) {
             // grab texture data pixel by pixel
-             draw_texel(x, y, texture, &a, &b, &c, u0, v0, u1, v1, u2, v2);  
+             draw_texel(x, y, texture, &a, &b, &c, &u0, &v0, &u1, &v1, &u2, &v2);  
         }
     }  
   }
@@ -195,7 +251,7 @@ void draw_textured_triangle(
     
         for(int x = xStart; x < xEnd; x++) {
             // grab texture data pixel by pixel
-            draw_texel(x, y, texture, &a, &b, &c, u0, v0, u1, v1, u2, v2);  
+            draw_texel(x, y, texture, &a, &b, &c, &u0, &v0, &u1, &v1, &u2, &v2);  
         }
     }  
   }
