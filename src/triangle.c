@@ -4,9 +4,7 @@
 #include "triangle.h"
 #include "display.h"
 #include "swap.h"
-
-uint64_t globalCount = 0;
-int maxIndex = 4096; 
+ 
 
 void fill_upper_half(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
     // y = mx + b - but inverse slope is needed
@@ -125,9 +123,6 @@ void draw_texel(
         float* u2, float* v2 
 ) {
 	
-	// TODO DEBUG
-	globalCount++;
-	printf("drawing texel %ld\n", globalCount);
 	
     vec2_t pointP = {x, y};
     vec3_t weights = computeBarycentric2D(a, b, c, &pointP); 
@@ -135,30 +130,24 @@ void draw_texel(
     float alpha = weights.x;
     float beta = weights.y;
     float gamma = weights.z; 
-
-	printf("Barycentric weights: a: %.3f, b: %.3f, g: %.3f\n", alpha, beta, gamma); 
+ 
 	
     float interU, interV; 
     // get interpolated uv coords, by weighing them with alpha, beta & gamma
     interU = (*u0) * alpha + (*u1) * beta + (*u2) * gamma; 
     interV = (*v0) * alpha + (*v1) * beta + (*v2) * gamma; 
     
-
-	printf("Interpolated: u %.3f  v %.3f\n", interU, interV); 
+ 
 
     // scale uv to texture H x W 
     int textureX = abs((int)(interU * texture_width));
     int textureY = abs((int)(interV * texture_height)); 
 
-	printf("Computed XY: (%d, %d)\n", textureX, textureY);
 
 	// clamp the array index before passing to the draw_pixel
-	int texIndex = ((texture_width * textureY) + textureX) % (texture_width * texture_height);
-	printf("Attempting index: %d (Limit: %d)\n", texIndex, maxIndex); 
-	draw_pixel(x, y, texture[texIndex]);
+	int texIndex = ((texture_width * textureY) + textureX) % (texture_width * texture_height); 
+	draw_pixel(x, y, mesh_texture[texIndex]);
 	
-	
-	printf("texel drawn\n\n\n");
      
 }
 
