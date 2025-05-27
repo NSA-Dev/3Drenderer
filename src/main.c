@@ -172,8 +172,9 @@ void process_input(void) {
              if(event.key.keysym.sym == SDLK_F5)
                 rendering_mode.enable_culling = !rendering_mode.enable_culling;
              if(event.key.keysym.sym == SDLK_F6) {
-                if(mesh_texture != NULL) 
-                    rendering_mode.enable_textured_wire = !rendering_mode.enable_textured_wire; 
+                //if(mesh_texture != NULL) 
+                    //rendering_mode.enable_textured_wire = !rendering_mode.enable_textured_wire;
+                printf("wireframe not supported in this mode\n");     
             }    
              if(event.key.keysym.sym == SDLK_F7) {
                 if(mesh_texture != NULL)

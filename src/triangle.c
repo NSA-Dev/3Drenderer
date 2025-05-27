@@ -67,7 +67,7 @@ void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32
 
     // Calculate median point (based on triangle similarity property)
         int mY = y1;
-        int mX = (x2-x0) * (y1-y0) / (float)(y2 - y0) + x0;
+        int mX = (((x2-x0) * (y1-y0)) / (float)(y2 - y0)) + x0;
 
     // draw upper half of the triangle
         fill_upper_half(x0, y0, x1, y1, mX, mY, color); 
@@ -208,12 +208,13 @@ void draw_textured_triangle(
   if(y1 - y0 != 0) {
    
     for(int y = y0;  y <= y1; y++) { 
-        int xStart = (int)round(x1 + (y - y1) * invSlope_L); // added rounding for consistency (same for bot)
-        int xEnd = (int)round(x0 + (y - y0) * invSlope_R);  
+        int xStart = (x1 + (y - y1) * invSlope_L); // added rounding for consistency (same for bot)
+        int xEnd = (x0 + (y - y0) * invSlope_R);  
     
         if(xEnd < xStart) int_swap(&xStart, &xEnd); // check if we are going L -> R swap otherwise
     
-        for(int x = xStart; x < xEnd; x++) {
+    // Note x <= xEnd
+        for(int x = xStart; x <= xEnd; x++) {
             // grab texture data pixel by pixel
              draw_texel(x, y, texture, &a, &b, &c, &u0, &v0, &u1, &v1, &u2, &v2);  
         }
@@ -233,12 +234,12 @@ void draw_textured_triangle(
 
     // I'd argue this interval should be inclusive   
     for(int y = y1;  y <= y2; y++) { 
-        int xStart =(int)round(x1 + (y - y1) * invSlope_L);
-        int xEnd = (int)round(x0 + (y - y0) * invSlope_R);  
+        int xStart = x1 + (y - y1) * invSlope_L;
+        int xEnd = (x0 + (y - y0) * invSlope_R);  
     
         if(xEnd < xStart) int_swap(&xStart, &xEnd); // check if we are going L -> R swap otherwise
     
-        for(int x = xStart; x < xEnd; x++) {
+        for(int x = xStart; x <= xEnd; x++) {
             // grab texture data pixel by pixel
             draw_texel(x, y, texture, &a, &b, &c, &u0, &v0, &u1, &v1, &u2, &v2);  
         }
