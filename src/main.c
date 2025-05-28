@@ -339,9 +339,12 @@ void update(void) {
                 // Note to self:
                 // An explicit typecast is required here, since a compiler has no clue 
                 // about which type to use for this field
-                projected_triangle.points[j] = (vec2_t) {
+                projected_triangle.points[j] = (vec4_t) {
                     .x = projected.x,
-                    .y = projected.y
+                    .y = projected.y,
+                    // since updated struct field to vec4_t, we save z & w for correct rasterization later
+                    .z = projected.z, 
+                    .w = projected.w
                 }; 
             }
             // add color data to the triangle
@@ -370,6 +373,7 @@ void render(void) {
 
     for(int i = 0; i < polycount; i++) {
         triangle_t triangle = triangles_to_render[i];
+        
         if(rendering_mode.enable_vertices) { 
             draw_rect(triangle.points[0].x - 3, triangle.points[0].y - 3, 4, 4, COLOR_RED); 
             draw_rect(triangle.points[1].x - 3, triangle.points[1].y - 3, 4, 4, COLOR_RED); 
@@ -394,10 +398,21 @@ void render(void) {
                 );
         }
        if(rendering_mode.enable_textured || rendering_mode.enable_textured_wire) {
+		   
+		   // Disabled for prototyping 
+		   /*
+		   drawTextured_triangle(&triangle.points[0], &triangle.texcoords[0],
+								 &triangle.points[1], &triangle.texcoords[0],
+								 &triangle.points[2], &triangle.texcoords[2],
+							     &triangle.color // dummy var
+								);
+		   
+		   */
+		   // what a mess 
            draw_textured_triangle(
-                triangle.points[0].x, triangle.points[0].y, triangle.texcoords[0].u, triangle.texcoords[0].v,
-                triangle.points[1].x, triangle.points[1].y, triangle.texcoords[1].u, triangle.texcoords[1].v,
-                triangle.points[2].x, triangle.points[2].y, triangle.texcoords[2].u, triangle.texcoords[2].v,
+                triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w, triangle.texcoords[0].u, triangle.texcoords[0].v,
+                triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w,triangle.texcoords[1].u, triangle.texcoords[1].v,
+                triangle.points[2].x, triangle.points[2].y, triangle.points[2].z, triangle.points[2].w,triangle.texcoords[2].u, triangle.texcoords[2].v,
                 &triangle.color // dummy variable to comply with the signature                 
                 );        
        } 
