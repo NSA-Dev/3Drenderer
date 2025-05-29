@@ -11,6 +11,7 @@
 #include "light.h"
 #include "texture.h"
 #include "triangle.h"
+#include "upng.h"
 
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 #define  PI_CONST 3.14159
@@ -21,11 +22,12 @@ triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
 mat4_t proj_matrix;
-char default_asset_dir[] = "./assets/none.obj"; // Usage: manually specify model.
-                                               // shouldn't be used until I implement parsing
-                                               // colors / textures from .obj files,
-                                               // since face_t has been altered to include
-                                               // color (uint32_t) field
+char modelPath[] = "./assets/none.obj"; // Usage: manually specify model.
+											    // shouldn't be used until I implement parsing
+                                                // colors / textures from .obj files,
+                                                // since face_t has been altered to include
+                                                // color (uint32_t) field
+char texturePath[] = "./assets/cube.png";
 /*  vector  declr  */
 vec3_t camera_pos = { 0, 0, 0};
 
@@ -68,7 +70,8 @@ bool setup(void) {
    // framebuffer texture
    framebuffer_texture = SDL_CreateTexture(
         renderer,           // renderer responsible 
-        SDL_PIXELFORMAT_ARGB8888,
+        //SDL_PIXELFORMAT_ARGB8888,
+        SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_STREAMING,
         win_w,
         win_h
@@ -79,7 +82,7 @@ bool setup(void) {
    }
 
    // if unable to load custom model, load default cube and print msg
-    if(!load_mesh_data(default_asset_dir)) {
+    if(!load_mesh_data(modelPath)) {
         printf("Error: unable to read specified .obj file.\n");
         printf("Loading default model...\n");  
         load_cube_mesh(); 
@@ -101,9 +104,13 @@ bool setup(void) {
 
 
     // Texture loading
-    mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded) 
+    if(!load_png_textureData(texturePath)) {
+			printf("Error: unable to open provided texture.\n Loading default..."); 
+			mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
+	}
+     
 
-    initialize_rendering_mode();
+    initialize_rendering_mode(); // assign default mode flags
     
     
     return true; 
@@ -431,5 +438,5 @@ void free_resources(void) {
     if(framebuffer != NULL) free(framebuffer); 
     array_free(mesh.faces);
     array_free(mesh.verts);
-    
+    upng_free(png_texture); 
 }
