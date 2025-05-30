@@ -330,10 +330,8 @@ void update(void) {
                 // Note: on widescreen x is scalled height and y by width
                 // This is the opposite of what was shown in the materials.
                 // scale projection into view
-                projected.x *= -1 * (win_h / 2.0); // was w
-                projected.y *= -1 * (win_w / 2.0); // was h
-                
-                // Note -1 in the lines above. 
+                projected.x *= (win_h / 2.0); // -1 here mirrored my textures -_-
+				projected.y *= -(win_w / 2.0);
                 // Inverting y & x is the necessary
                 // (model values come bottom up, which is the opposite of screen space y) 
                 // the same is  true for x. This has to do with their orientation in .obj files 
