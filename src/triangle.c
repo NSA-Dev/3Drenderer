@@ -151,9 +151,11 @@ void draw_texel(
 	interV /= interW_inverted; 
 
     // scale uv to texture H x W 
-    int textureX = abs((int)(interU * texture_width));
-    int textureY = abs((int)(interV * texture_height)); 
+    int textureX = abs((int)(interU * texture_width)); // can clamp here by % texture_width
+    int textureY = abs((int)(interV * texture_height)); // can clamp here by % texture_height 
 
+
+	// Note the clamp method can produce artifacts 
 
 	// clamp the array index before passing to the draw_pixel
 	int texIndex = ((texture_width * textureY) + textureX) % (texture_width * texture_height); 

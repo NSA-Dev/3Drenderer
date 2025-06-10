@@ -23,11 +23,7 @@ bool is_running = false;
 int previous_frame_time = 0; // ms
 mat4_t proj_matrix;
 char modelPath[] = "./assets/cube.obj"; // Usage: manually specify model.
-											    // shouldn't be used until I implement parsing
-                                                // colors / textures from .obj files,
-                                                // since face_t has been altered to include
-                                                // color (uint32_t) field
-char texturePath[] = "./assets/cube.png";
+char texturePath[] = "./assets/cube1.png"; // 
 /*  vector  declr  */
 vec3_t camera_pos = { 0, 0, 0};
 
