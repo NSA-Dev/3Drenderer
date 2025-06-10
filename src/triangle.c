@@ -151,14 +151,17 @@ void draw_texel(
 	interV /= interW_inverted; 
 
     // scale uv to texture H x W 
-    int textureX = abs((int)(interU * texture_width)); // can clamp here by % texture_width
-    int textureY = abs((int)(interV * texture_height)); // can clamp here by % texture_height 
+    int textureX = abs((int)(interU * texture_width) % texture_width); // can clamp here by % texture_width
+    int textureY = abs((int)(interV * texture_height) % texture_height); // can clamp here by % texture_height 
 
-
-	// Note the clamp method can produce artifacts 
-
-	// clamp the array index before passing to the draw_pixel
-	int texIndex = ((texture_width * textureY) + textureX) % (texture_width * texture_height); 
+	/* Note the clamp method can produce artifacts, i.e 
+	   (Polygon gaps: empty cracks on polygons, especially on triangles sharing edges.)
+	   Since fill conventions, rasterization rules, subpixel precision are not handled properly. 
+	*/
+	
+	
+	// clamp the array index before passing to the draw_pixel % (texture_width * texture_height)
+	int texIndex = ((texture_width * textureY) + textureX) ; 
 	draw_pixel(x, y, mesh_texture[texIndex]);
 	
      

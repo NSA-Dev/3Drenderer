@@ -22,8 +22,8 @@ triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
 mat4_t proj_matrix;
-char modelPath[] = "./assets/cube.obj"; // Usage: manually specify model.
-char texturePath[] = "./assets/cube1.png"; // 
+char modelPath[] = "./assets/f117.obj"; // Usage: manually specify model.
+char texturePath[] = "./assets/f117.png"; // 
 /*  vector  declr  */
 vec3_t camera_pos = { 0, 0, 0};
 
@@ -112,6 +112,7 @@ bool setup(void) {
     return true; 
 }
 
+// TODO fix control logic for the rendering mode as leads to all sorts of artifacts!
 void process_input(void) {
     SDL_Event event; 
     SDL_PollEvent(&event);  // needs a pointer to the event
@@ -180,8 +181,16 @@ void process_input(void) {
                 printf("wireframe not supported in this mode\n");     
             }    
              if(event.key.keysym.sym == SDLK_F7) {
-                if(mesh_texture != NULL)
+                if(mesh_texture != NULL) {
                     rendering_mode.enable_textured = !rendering_mode.enable_textured;
+					rendering_mode.enable_wireframe = false;
+					rendering_mode.enable_vertices = false;
+                    rendering_mode.enable_solid = false;
+                    rendering_mode.enable_culling = true;
+					rendering_mode.enable_flat_shading = false;
+					//rendering_mode.enable_textured = false;
+					rendering_mode.enable_textured_wire = false;  
+                }
             }
              if(event.key.keysym.sym == SDLK_F8) {
                rendering_mode.enable_flat_shading = !rendering_mode.enable_flat_shading;
@@ -398,18 +407,9 @@ void render(void) {
                 COLOR_GRAY                  
                 );
         }
-       if(rendering_mode.enable_textured || rendering_mode.enable_textured_wire) {
+       if(rendering_mode.enable_textured) {
 		   
-		   // Disabled for prototyping 
-		   /*
-		   drawTextured_triangle(&triangle.points[0], &triangle.texcoords[0],
-								 &triangle.points[1], &triangle.texcoords[0],
-								 &triangle.points[2], &triangle.texcoords[2],
-							     &triangle.color // dummy var
-								);
-		   
-		   */
-		   // what a mess 
+		   // what a mess || rendering_mode.enable_textured_wire
            draw_textured_triangle(
                 triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w, triangle.texcoords[0].u, triangle.texcoords[0].v,
                 triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w,triangle.texcoords[1].u, triangle.texcoords[1].v,
