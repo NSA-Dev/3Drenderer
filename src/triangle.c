@@ -200,6 +200,11 @@ void draw_textured_triangle(
         float_swap(&u0, &u1);
         float_swap (&v0, &v1); 
     }
+    
+  // Flip the v-s (v grows downwards in .obj)
+  v0 = 1.0 - v0;
+  v1 = 1.0 - v1;
+  v2 = 1.0 - v2;   
 
   // put vertex data in vec2_t for later usage
   vec4_t a = {x0, y0, z0, w0};

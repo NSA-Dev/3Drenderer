@@ -22,7 +22,7 @@ triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
 mat4_t proj_matrix;
-char modelPath[] = "./assets/none.obj"; // Usage: manually specify model.
+char modelPath[] = "./assets/cube.obj"; // Usage: manually specify model.
 											    // shouldn't be used until I implement parsing
                                                 // colors / textures from .obj files,
                                                 // since face_t has been altered to include
@@ -103,7 +103,7 @@ bool setup(void) {
     mesh.translation.z = 5; // default "camera" depth
 
 
-    // Texture loading
+    // .png Texture loading 
     if(!load_png_textureData(texturePath)) {
 			printf("Error: unable to open provided texture.\n Loading default..."); 
 			mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
@@ -244,9 +244,9 @@ void update(void) {
         // find index corresponding to a
         // grab data with the index from mesh_verts
         // -1 compensates for index  offset
-        face_verts[0] = mesh.verts[mesh_face.a - 1];
-        face_verts[1] = mesh.verts[mesh_face.b - 1];
-        face_verts[2] = mesh.verts[mesh_face.c - 1];
+        face_verts[0] = mesh.verts[mesh_face.a];
+        face_verts[1] = mesh.verts[mesh_face.b];
+        face_verts[2] = mesh.verts[mesh_face.c];
         
         // prepare a temp triangle_t for passing into triangles_to_render[]
         triangle_t projected_triangle;

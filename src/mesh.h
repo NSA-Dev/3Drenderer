@@ -24,6 +24,7 @@ extern mesh_t mesh;
 
 // Functions
 void load_cube_mesh(void);
-bool load_mesh_data(char* fname);
+bool load_mesh_data(char* fname); // parse provided .obj file, 
+								 //  copy relevant data into the global mesh array 
 
 #endif

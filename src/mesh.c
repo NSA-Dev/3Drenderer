@@ -60,8 +60,11 @@ void load_cube_mesh(void) {
 }
 
 bool load_mesh_data(char* fname) {
+	
+	// store VT in an array
     FILE* fp;
     char str[1024];
+    tex2_t* uvCoords = NULL; // init uv array to store tex data coords 
 
     if((fp = fopen(fname, "r")) == NULL) {
         printf("Error: couldn't open file\n");
@@ -70,13 +73,19 @@ bool load_mesh_data(char* fname) {
 
     while(fgets(str, sizeof(str), fp) != NULL) {
         
-        // expects: "v  1.0000 2.000 3.000"
+        // Vertex data expects: "v  1.0000 2.000 3.000"
         if(!strncmp(str, "v ", 2)) {
             vec3_t vector;
             sscanf(str, "v %f %f %f", &vector.x, &vector.y, &vector.z);
             array_push(mesh.verts, vector);
         }
-        // expects: "f 1/2/3 1/2/3 1/2/3 "
+        // UV data expects: "vt 1.000000 0.000000"
+        if(!strncmp(str, "vt ", 3)) {
+			tex2_t texCoord; // v orientation is inverted relative to standard .obj
+			sscanf(str, "vt %f %f", &texCoord.u, &texCoord.v);
+			array_push(uvCoords, texCoord); 
+		}
+        // Face data expects: "f 1/2/3 1/2/3 1/2/3 "
         if(!strncmp(str, "f ", 2)) {
             int vert_i[3];
             int texture_i[3];
@@ -89,13 +98,19 @@ bool load_mesh_data(char* fname) {
                   );
             
             face_t face = {
-                .a = vert_i[0],
-                .b = vert_i[1],
-                .c = vert_i[2]
+				// offset the .obj indexing to C conventions 
+                .a = vert_i[0] - 1,
+                .b = vert_i[1] - 1,
+                .c = vert_i[2] - 1,
+                // - 1 offset because .obj indexes from 1 
+                .a_uv = uvCoords[texture_i[0] - 1],
+                .b_uv = uvCoords[texture_i[1] - 1],
+                .c_uv = uvCoords[texture_i[2] - 1]
             };
 
             array_push(mesh.faces, face); 
         }
     }
+    array_free(uvCoords); 
     return true; 
 }
