@@ -27,20 +27,8 @@ typedef enum {
 	LIGHT_BASIC
 } LightMethod;
 
-/*
-typedef struct {
-    bool enable_wireframe;
-    bool enable_vertices;
-    bool enable_solid;
-    bool enable_culling;
-    bool enable_flat_shading;
-    bool enable_textured;
-    bool enable_textured_wire; 
-} render_flags_t; 
 
-*/
 /* global declarations*/
-// extern render_flags_t rendering_mode;
 extern RenderingMode g_renderingMode;
 extern CullMethod g_cullMethod;
 extern LightMethod g_lightMethod; 
@@ -53,7 +41,6 @@ extern int win_h;    // fallback value
 
 /* signatures */
 bool init_win(void);
-//void initialize_rendering_mode(void);
 void draw_grid(int spacing, uint32_t color);
 void draw_pixel(int x, int y, uint32_t color);
 void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color);

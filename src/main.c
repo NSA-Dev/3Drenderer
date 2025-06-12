@@ -114,7 +114,6 @@ bool setup(void) {
     return true; 
 }
 
-// TODO fix control logic for the rendering mode as leads to all sorts of artifacts!
 void process_input(void) {
     SDL_Event event; 
     SDL_PollEvent(&event);  // needs a pointer to the event
@@ -153,7 +152,6 @@ void process_input(void) {
                 mesh.scale.x += 0.1;
              if(event.key.keysym.sym == SDLK_e)
                 mesh.scale.x -= 0.1;
-            //TODO refactor into enum to simplify
             //Rendering modes
              if(event.key.keysym.sym == SDLK_F1) {
 				 g_renderingMode = RENDER_WIRE;
