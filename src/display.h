@@ -8,6 +8,26 @@
 #define FPS 60
 #define FTT (1000 / FPS)
 
+typedef enum {
+	RENDER_WIRE,
+	RENDER_WIRE_VERTEX,
+	RENDER_SOLID,
+	RENDER_SOLID_WIRE,
+	RENDER_TEXTURED,
+	RENDER_TEXTURED_WIRE
+} RenderingMode;
+
+typedef enum  {
+	CULL_NONE,
+	CULL_BACKFACE
+} CullMethod;
+
+typedef enum {
+	LIGHT_NONE,
+	LIGHT_BASIC
+} LightMethod;
+
+/*
 typedef struct {
     bool enable_wireframe;
     bool enable_vertices;
@@ -18,8 +38,12 @@ typedef struct {
     bool enable_textured_wire; 
 } render_flags_t; 
 
+*/
 /* global declarations*/
-extern render_flags_t rendering_mode;
+// extern render_flags_t rendering_mode;
+extern RenderingMode g_renderingMode;
+extern CullMethod g_cullMethod;
+extern LightMethod g_lightMethod; 
 extern SDL_Window* window;
 extern SDL_Renderer* renderer;
 extern uint32_t* framebuffer;
@@ -29,7 +53,7 @@ extern int win_h;    // fallback value
 
 /* signatures */
 bool init_win(void);
-void initialize_rendering_mode(void);
+//void initialize_rendering_mode(void);
 void draw_grid(int spacing, uint32_t color);
 void draw_pixel(int x, int y, uint32_t color);
 void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color);

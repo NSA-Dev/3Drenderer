@@ -22,8 +22,8 @@ triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
 mat4_t proj_matrix;
-char modelPath[] = "./assets/f117.obj"; // Usage: manually specify model.
-char texturePath[] = "./assets/f117.png"; // 
+char modelPath[] = "./assets/crab.obj"; // Usage: manually specify model.
+char texturePath[] = "./assets/crab.png"; // 
 /*  vector  declr  */
 vec3_t camera_pos = { 0, 0, 0};
 
@@ -106,8 +106,10 @@ bool setup(void) {
 	}
      
 
-    initialize_rendering_mode(); // assign default mode flags
-    
+    //initialize_rendering_mode(); // assign default mode flags
+    g_renderingMode = RENDER_TEXTURED;
+    g_cullMethod = CULL_BACKFACE;  
+    g_lightMethod = LIGHT_NONE; 
     
     return true; 
 }
@@ -154,46 +156,34 @@ void process_input(void) {
             //TODO refactor into enum to simplify
             //Rendering modes
              if(event.key.keysym.sym == SDLK_F1) {
-                rendering_mode.enable_wireframe = true;
-                rendering_mode.enable_vertices = true;
-                rendering_mode.enable_solid = false;
+				 g_renderingMode = RENDER_WIRE;
             }    
              if (event.key.keysym.sym == SDLK_F2) {
-                rendering_mode.enable_wireframe = true;
-                rendering_mode.enable_vertices = false;
-                rendering_mode.enable_solid = false; 
+				 g_renderingMode = RENDER_WIRE_VERTEX; 
             }
              if(event.key.keysym.sym == SDLK_F3) {
-                rendering_mode.enable_wireframe = false;
-                rendering_mode.enable_vertices = false;
-                rendering_mode.enable_solid = true; 
+				 g_renderingMode = RENDER_SOLID; 
             }
              if (event.key.keysym.sym == SDLK_F4) {
-                rendering_mode.enable_wireframe = true;
-                rendering_mode.enable_vertices = false;
-                rendering_mode.enable_solid = true; 
+				 g_renderingMode = RENDER_SOLID_WIRE; 
             }
-             if(event.key.keysym.sym == SDLK_F5)
-                rendering_mode.enable_culling = !rendering_mode.enable_culling;
+             if(event.key.keysym.sym == SDLK_F5){
+				g_cullMethod = CULL_BACKFACE;
+			}
              if(event.key.keysym.sym == SDLK_F6) {
-                //if(mesh_texture != NULL) 
-                    //rendering_mode.enable_textured_wire = !rendering_mode.enable_textured_wire;
-                printf("wireframe not supported in this mode\n");     
+				 g_cullMethod = CULL_NONE;       
             }    
              if(event.key.keysym.sym == SDLK_F7) {
                 if(mesh_texture != NULL) {
-                    rendering_mode.enable_textured = !rendering_mode.enable_textured;
-					rendering_mode.enable_wireframe = false;
-					rendering_mode.enable_vertices = false;
-                    rendering_mode.enable_solid = false;
-                    rendering_mode.enable_culling = true;
-					rendering_mode.enable_flat_shading = false;
-					//rendering_mode.enable_textured = false;
-					rendering_mode.enable_textured_wire = false;  
+					g_renderingMode = RENDER_TEXTURED;   
                 }
             }
              if(event.key.keysym.sym == SDLK_F8) {
-               rendering_mode.enable_flat_shading = !rendering_mode.enable_flat_shading;
+               if(g_lightMethod == LIGHT_NONE) {
+					g_lightMethod = LIGHT_BASIC;
+				} else {
+					g_lightMethod = LIGHT_NONE; 	
+				}
             }
                 
             break; 
@@ -303,7 +293,7 @@ void update(void) {
        /* Rendering checks start here  */     
             
             // Culling  (clock wise orientation) 
-            if(rendering_mode.enable_culling) {
+            if(g_cullMethod == CULL_BACKFACE) {
                 // Find camera ray by substracting camera pos from A
                 vec3_t camera_ray = vec3_sub(&camera_pos, &a);
 
@@ -314,8 +304,8 @@ void update(void) {
                 if(alignment_factor < 0) continue;
             }
 
-            // Shading
-            if(rendering_mode.enable_flat_shading) {
+            // Lighting
+            if(g_lightMethod == LIGHT_BASIC) {
                 // Find light position relative to the face
                 float ray_alignment = -vec3_dot(&normal, &global_light.direction); 
                 mesh_face.color = light_apply_intensity(mesh_face.color, ray_alignment); 
@@ -384,13 +374,22 @@ void render(void) {
     for(int i = 0; i < polycount; i++) {
         triangle_t triangle = triangles_to_render[i];
         
-        if(rendering_mode.enable_vertices) { 
+       if(g_renderingMode == RENDER_TEXTURED || g_renderingMode == RENDER_TEXTURED_WIRE) {
+           draw_textured_triangle(
+                triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w, triangle.texcoords[0].u, triangle.texcoords[0].v,
+                triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w,triangle.texcoords[1].u, triangle.texcoords[1].v,
+                triangle.points[2].x, triangle.points[2].y, triangle.points[2].z, triangle.points[2].w,triangle.texcoords[2].u, triangle.texcoords[2].v,
+                &triangle.color // dummy variable to comply with the signature                 
+                );        
+       }
+        
+        if(g_renderingMode == RENDER_WIRE_VERTEX) {
             draw_rect(triangle.points[0].x - 3, triangle.points[0].y - 3, 4, 4, COLOR_RED); 
             draw_rect(triangle.points[1].x - 3, triangle.points[1].y - 3, 4, 4, COLOR_RED); 
             draw_rect(triangle.points[2].x - 3, triangle.points[2].y - 3, 4, 4, COLOR_RED);
         }
 
-        if(rendering_mode.enable_solid) {
+        if(g_renderingMode == RENDER_SOLID) {
             draw_filled_triangle(
                 triangle.points[0].x, triangle.points[0].y,
                 triangle.points[1].x, triangle.points[1].y,
@@ -399,24 +398,14 @@ void render(void) {
                 );
         }
 
-        if(rendering_mode.enable_wireframe) {
+        if(g_renderingMode == RENDER_WIRE || g_renderingMode == RENDER_WIRE_VERTEX || g_renderingMode == RENDER_SOLID_WIRE || g_renderingMode == RENDER_TEXTURED_WIRE) {
             draw_triangle(
                 triangle.points[0].x, triangle.points[0].y,
                 triangle.points[1].x, triangle.points[1].y,
                 triangle.points[2].x, triangle.points[2].y,
                 COLOR_GRAY                  
                 );
-        }
-       if(rendering_mode.enable_textured) {
-		   
-		   // what a mess || rendering_mode.enable_textured_wire
-           draw_textured_triangle(
-                triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w, triangle.texcoords[0].u, triangle.texcoords[0].v,
-                triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w,triangle.texcoords[1].u, triangle.texcoords[1].v,
-                triangle.points[2].x, triangle.points[2].y, triangle.points[2].z, triangle.points[2].w,triangle.texcoords[2].u, triangle.texcoords[2].v,
-                &triangle.color // dummy variable to comply with the signature                 
-                );        
-       } 
+        } 
     } 
 
     array_free(triangles_to_render); 

@@ -1,7 +1,10 @@
 #include "display.h"
 
 /* global init */
-render_flags_t rendering_mode;
+//render_flags_t rendering_mode;
+RenderingMode g_renderingMode;
+CullMethod g_cullMethod;
+LightMethod g_lightMethod; 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 uint32_t* framebuffer = NULL;
@@ -59,7 +62,7 @@ bool init_win(void) {
     return true; 
 }
 
-
+/*
 void initialize_rendering_mode(void) {
    rendering_mode.enable_wireframe = false;
    rendering_mode.enable_vertices = false;
@@ -70,6 +73,7 @@ void initialize_rendering_mode(void) {
    rendering_mode.enable_textured_wire = false;   
 }
 
+*/
 void draw_grid(int spacing, uint32_t color) {
     // draws a dot grid
     for(int row = 0; row <  win_h; row += spacing) {
