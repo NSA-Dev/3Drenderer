@@ -22,8 +22,8 @@ triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
 mat4_t proj_matrix;
-char modelPath[] = "./assets/crab.obj"; // Usage: manually specify model.
-char texturePath[] = "./assets/crab.png"; // 
+char modelPath[] = "./assets/drone.obj"; // Usage: manually specify model.
+char texturePath[] = "./assets/drone.png"; // 
 /*  vector  declr  */
 vec3_t camera_pos = { 0, 0, 0};
 
