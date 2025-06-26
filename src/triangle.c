@@ -159,12 +159,21 @@ void draw_texel(
 	   Since fill conventions, rasterization rules, subpixel precision are not handled properly. 
 	*/
 	
+	int pixelPos = (win_w * y) + x; // pre-compute current pixel position on the screen 
 	
-	// clamp the array index before passing to the draw_pixel % (texture_width * texture_height)
-	int texIndex = ((texture_width * textureY) + textureX) ; 
-	draw_pixel(x, y, mesh_texture[texIndex]);
+	// adjust 1/w so that closer pixels have smaller component value
+	interW_inverted = 1.0 - interW_inverted; 
 	
-     
+	// draw & update Z-buff only if depth is less then previous 
+	if(interW_inverted < g_Zbuffer[pixelPos]) {
+		
+		// clamp the array index before passing to the draw_pixel % (texture_width * texture_height)
+		int texIndex = ((texture_width * textureY) + textureX) ; 
+		draw_pixel(x, y, mesh_texture[texIndex]);
+	
+		// update Z buffer at a current position with the calculated 1/w
+		g_Zbuffer[pixelPos]  = interW_inverted; 
+	} 
 }
 
 // I am using round() in contrast to the lecture materials, might cause issues down the line

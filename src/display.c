@@ -7,6 +7,7 @@ LightMethod g_lightMethod;
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 uint32_t* framebuffer = NULL;
+float* g_Zbuffer = NULL; 
 SDL_Texture* framebuffer_texture = NULL;
 int win_w = 800;    // fallback value
 int win_h = 600;    // fallback value
@@ -135,6 +136,13 @@ void clear_framebuffer(uint32_t color) {
     for(int i = 0; i < (win_w * win_h); i++) {
         framebuffer[i] = color; 
     } 
+}
+
+void clear_Zbuffer(void) {
+	for(int i = 0; i < (win_w * win_h); i++) {
+		g_Zbuffer[i] = 1.0; // Z-buffer starts with 1.0 in left handed coord sys by convention   
+	}
+
 }
 
 void destroy_window(void) { 

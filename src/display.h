@@ -35,6 +35,7 @@ extern LightMethod g_lightMethod;
 extern SDL_Window* window;
 extern SDL_Renderer* renderer;
 extern uint32_t* framebuffer;
+extern float* g_Zbuffer; 
 extern SDL_Texture* framebuffer_texture;
 extern int win_w;    // fallback value
 extern int win_h;    // fallback value
@@ -48,5 +49,6 @@ void draw_rect(int x, int y, int w, int h, uint32_t color);
 void draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, uint32_t color); // uses Bresenheim's
 void render_framebuffer(void);
 void clear_framebuffer(uint32_t color);
+void clear_Zbuffer(void);
 void destroy_window(void);
 #endif
