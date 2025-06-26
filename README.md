@@ -2,7 +2,6 @@
 #  Basic 3D Software Renderer
 
 **Language:** C | **Library:** SDL2  
-_A learning project based on the 3D Graphics Programming course from Pikuma.com
 
 This is a work-in-progress software renderer built from scratch as a learning project, aimed at deepening understanding of 3D graphics fundamentals. It is based on the 3D Graphics Programming course from Pikuma.com
 
