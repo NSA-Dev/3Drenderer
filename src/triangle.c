@@ -41,7 +41,7 @@ void fill_lower_half(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t co
         x_end -= inv_m2;
     }
 }
-void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
+void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {	
     //  sort by y (y0 < y1 < y2)
     if(y0 > y1) {
         int_swap(&y0, &y1);
@@ -74,6 +74,142 @@ void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32
     // draw lower half of the triangle
         fill_lower_half(x1, y1, mX, mY, x2, y2, color); 
     }
+}
+
+// draws solid triangle, using z-buffer
+// Vert orientation
+/*
+ * 
+ *   B 
+ * 	/ \
+ * A - C
+ * 
+ * 
+ * */
+void draw_solid_triangle(triangle_t* triangle) {
+   // Vert A 
+	int x0 = triangle->points[0].x;
+	int y0 = triangle->points[0].y;
+	float z0 =triangle->points[0].z;
+	float w0 = triangle->points[0].w;
+  // Vert B
+	int x1 = triangle->points[1].x;
+	int y1 = triangle->points[1].y;
+	float z1 = triangle->points[1].z;
+	float w1 = triangle->points[1].w;
+  // Vert C
+	int x2 = triangle->points[2].x;
+	int y2 = triangle->points[2].y;
+	float z2 = triangle->points[2].z;
+	float w2 = triangle->points[2].w;
+
+    // sort by y (y0 < y1 < y2) to ensure correct vertex orientation
+    if(y0 > y1) {
+        int_swap(&y0, &y1);
+        int_swap(&x0, &x1);
+        float_swap(&z0, &z1);
+        float_swap(&w0, &w1);
+    }
+
+    if(y1 > y2) {
+        int_swap(&y1, &y2);
+        int_swap(&x1, &x2);
+        float_swap(&z1, &z2);
+        float_swap(&w1, &w2); 
+    }
+   // extra check to avoid incorrect sorting  
+    if (y0 > y1) { 
+        int_swap(&y0, &y1);
+        int_swap(&x0, &x1);
+        float_swap(&z0, &z1);
+        float_swap(&w0, &w1); 
+    }	
+
+  // put vertex data in vec4_t for later usage
+	vec4_t a = {x0, y0, z0, w0};
+	vec4_t b = {x1, y1, z1, w1};
+	vec4_t c = {x2, y2, z2, w2};  
+
+	
+  // UPPER HALF
+  // We begin by finding slopes for left & right leg to determine how far we need to go
+  // in Y direction, and then calculate start & end of the current scanline (xStart, Xend)
+  // After we have correct coordinates, we draw the line pixel by pixel with the color passed to the function. 
+
+
+  // determine inverse slope starting at y0 (topmost vertex) 
+  float invSlope_L = 0;
+  float invSlope_R = 0;
+
+  if(y1-y0 != 0) invSlope_L = (float) (x1 - x0) / abs(y1 - y0); // left leg slope 
+  if(y2-y0 != 0) invSlope_R = (float)(x2 - x0) / abs(y2 - y0); // right leg slope 
+  
+  
+  // draw only in case if vertical distance != 0
+  if(y1 - y0 != 0) {
+   
+    for(int y = y0;  y <= y1; y++) { 
+        int xStart = (x1 + (y - y1) * invSlope_L); // added rounding for consistency (same for bot)
+        int xEnd = (x0 + (y - y0) * invSlope_R);  
+    
+        if(xEnd < xStart) int_swap(&xStart, &xEnd); // check if we are going L -> R swap otherwise
+    
+    // Note x <= xEnd
+        for(int x = xStart; x <= xEnd; x++) {
+			draw_triangle_pixel(x, y, triangle->color, &a, &b, &c); 
+        }
+    }  
+  }
+  
+   // LOWER HALF 
+  invSlope_L = 0;
+  invSlope_R = 0;
+
+  if(y2-y1 != 0) invSlope_L = (float) (x2 - x1) / abs(y2 - y1); // left leg slope 
+  if(y2-y0 != 0) invSlope_R = (float)(x2 - x0) / abs(y2 - y0); // right leg slope 
+  
+  
+  // draw only in case if vertical distance != 0
+  if(y2 - y1 != 0) {
+
+    // I'd argue this interval should be inclusive   
+    for(int y = y1;  y <= y2; y++) { 
+        int xStart = x1 + (y - y1) * invSlope_L;
+        int xEnd = (x0 + (y - y0) * invSlope_R);  
+    
+        if(xEnd < xStart) int_swap(&xStart, &xEnd); // check if we are going L -> R swap otherwise
+    
+        for(int x = xStart; x <= xEnd; x++) {
+			draw_triangle_pixel(x, y, triangle->color, &a, &b, &c); 
+        }
+    }  
+  }
+}
+
+void draw_triangle_pixel(int x, int y, uint32_t color, vec4_t* vert_a, vec4_t* vert_b, vec4_t* vert_c) {
+	float interW_inverted; // used for depth calculations  
+	// package xy compononets for barycentric weights computation
+	vec2_t a_xy = vec2_from_vec4(vert_a);
+	vec2_t b_xy = vec2_from_vec4(vert_b);
+	vec2_t c_xy = vec2_from_vec4(vert_c); 	
+	
+	vec2_t pointP = {x, y}; 
+	vec3_t weights = computeBarycentric2D(&a_xy, &b_xy, &c_xy, &pointP);
+	float alpha = weights.x;
+	float beta = weights.y;
+	float gamma = weights.z;
+	
+	interW_inverted = (1 / vert_a->w) * alpha + (1 / vert_b->w) * beta + (1 / vert_c->w) * gamma;
+	int pixelPos = (win_w * y) + x; // pre-compute current pixel position on the screen
+	// adjust 1/w so that closer pixels have smaller component value
+	interW_inverted = 1.0 - interW_inverted;
+	
+	// draw & update Z-buff only if depth is less then previous 
+	if(interW_inverted < g_Zbuffer[pixelPos]) {
+		draw_pixel(x, y, color);
+		// update Z buffer at a current position with the calculated 1/w
+		g_Zbuffer[pixelPos]  = interW_inverted; 
+	}   
 }
 
 
@@ -220,7 +356,7 @@ void draw_textured_triangle(
   v1 = 1.0 - v1;
   v2 = 1.0 - v2;   
 
-  // put vertex data in vec2_t for later usage
+  // put vertex data in vec4_t for later usage
   vec4_t a = {x0, y0, z0, w0};
   vec4_t b = {x1, y1, z1, w1};
   vec4_t c = {x2, y2, z2, w2};   
@@ -292,28 +428,5 @@ void swap_triangle_t(triangle_t* a, triangle_t* b) {
 }
 
 
-int partition(triangle_t* array, int low, int high) {
-    float pivot = array[high].avg_depth;
-    int i = low;
 
-
-    for(int j = low; j < high; j++) {
-        if(array[j].avg_depth >= pivot) {
-            swap_triangle_t(&array[i], &array[j]);
-            i++;
-        }
-    }
-
-    swap_triangle_t(&array[i], &array[high]);
-
-    return i; 
-} 
-
-void qsort_depth(triangle_t* array, int low, int high) {
-    if (low < high) {
-        int pivot = partition(array, low, high); 
-        qsort_depth(array, low, pivot - 1);
-        qsort_depth(array, pivot + 1, high);
-    } 
-}
 

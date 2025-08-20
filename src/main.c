@@ -315,9 +315,6 @@ void update(void) {
             }
     
         /* Rest of the update  */    
-            //avg depth calculation for z sorting
-            float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;  
-            projected_triangle.avg_depth = avg_depth;
     
             // Projection step
             for(int j = 0; j < 3; j++) {
@@ -358,10 +355,6 @@ void update(void) {
         
     }
 
-    // sort triangles by average depth for painters algorithm
-    int length = array_length(triangles_to_render);
-    qsort_depth(triangles_to_render, 0, length - 1);
-  
 
     // check rotations for overflow
     if(mesh.rotation.x > R_LIMIT) mesh.rotation.x -= R_LIMIT;
@@ -393,12 +386,7 @@ void render(void) {
         }
 
         if(g_renderingMode == RENDER_SOLID) {
-            draw_filled_triangle(
-                triangle.points[0].x, triangle.points[0].y,
-                triangle.points[1].x, triangle.points[1].y,
-                triangle.points[2].x, triangle.points[2].y,
-                triangle.color                  
-                );
+            draw_solid_triangle(&triangle); 
         }
 
         if(g_renderingMode == RENDER_WIRE || g_renderingMode == RENDER_WIRE_VERTEX || g_renderingMode == RENDER_SOLID_WIRE || g_renderingMode == RENDER_TEXTURED_WIRE) {
