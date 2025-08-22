@@ -17,13 +17,15 @@
 #define  PI_CONST 3.14159
 /* .z rotations are disabled (they work, just did not add controls for them)*/
 
+triangle_t* g_renderQueue = NULL; 
+uint32_t g_polyCount  = 0;
+uint32_t g_triangleCounter = 0; 
 
-triangle_t* triangles_to_render = NULL;
 bool is_running = false;
 int previous_frame_time = 0; // ms
 mat4_t proj_matrix;
-char modelPath[] = "./assets/drone.obj"; // Usage: manually specify model.
-char texturePath[] = "./assets/drone.png"; // 
+char modelPath[] = "./assets/crab.obj"; // Usage: manually specify model.
+char texturePath[] = "./assets/crab.png"; // 
 /*  vector  declr  */
 vec3_t camera_pos = { 0, 0, 0};
 
@@ -70,8 +72,7 @@ bool setup(void) {
 	}
    // framebuffer texture
    framebuffer_texture = SDL_CreateTexture(
-        renderer,           // renderer responsible 
-        //SDL_PIXELFORMAT_ARGB8888,
+        renderer,           // renderer responsible
         SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_STREAMING,
         win_w,
@@ -87,12 +88,21 @@ bool setup(void) {
         printf("Error: unable to read specified .obj file.\n");
         printf("Loading default model...\n");  
         load_cube_mesh(); 
-        //load default cube texture
+        // load default cube texture
         mesh_texture = (uint32_t*)REDBRICK_TEXTURE; // mesh_texture (global) - defined in texture.h 
         texture_width = 64;
         texture_height = 64; 
     }   
 
+    // Allocate the draw list for all polys << Can eat all of the heap
+    g_polyCount = array_length(mesh.faces);
+    g_renderQueue = (triangle_t*)malloc(sizeof(triangle_t) * g_polyCount); 
+    if(!g_renderQueue) {
+		fprintf(stderr, "Error: not enough memory to process the model (polycount is too high).\n");
+		return false; 
+	}
+	
+	
     // Renderer settings
     float fov = PI_CONST / 3.0; 
     float aspect = (float) win_h / (float) win_w;
@@ -110,8 +120,6 @@ bool setup(void) {
 			mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
 	}
      
-
-    //initialize_rendering_mode(); // assign default mode flags
     g_renderingMode = RENDER_TEXTURED;
     g_cullMethod = CULL_BACKFACE;  
     g_lightMethod = LIGHT_NONE; 
@@ -216,9 +224,11 @@ void update(void) {
     mat4_t rotation_y = mat4_make_rotation_y(mesh.rotation.y);
     mat4_t rotation_z = mat4_make_rotation_z(mesh.rotation.z); 
     
-    // reset triangle array (leaks mem?)
-    triangles_to_render = NULL;
-    int num_faces = array_length(mesh.faces);
+	// reset triangle counter
+    g_triangleCounter = 0; 
+    
+    
+    int num_faces = g_polyCount;	// leftover
 
     // precalc the world matrix before applying transoformations to the vertices
     // (scale > rotate > translate) since translation changes origin of the object
@@ -246,7 +256,7 @@ void update(void) {
         face_verts[1] = mesh.verts[mesh_face.b];
         face_verts[2] = mesh.verts[mesh_face.c];
         
-        // prepare a temp triangle_t for passing into triangles_to_render[]
+        // prepare a temp triangle_t for passing into g_renderQueue[]
         triangle_t projected_triangle;
 
         // add texture data from mesh_face to the temp variable before future transformations
@@ -349,10 +359,13 @@ void update(void) {
             }
             // add color data to the triangle
             projected_triangle.color = mesh_face.color;
-        
-        // save calculated data for rendering 
-        array_push(triangles_to_render, projected_triangle);
-        
+            
+        // save calculated data for rendering (suspect that it crashes on stretch)
+		if(g_triangleCounter < g_polyCount) {
+			g_renderQueue[g_triangleCounter] = projected_triangle;
+			g_triangleCounter++; 
+		}
+
     }
 
 
@@ -365,10 +378,10 @@ void update(void) {
 
 void render(void) {
     draw_grid(10, COLOR_LIGHT_GRAY);          // grid spacing
-    int polycount = array_length(triangles_to_render);
-
-    for(int i = 0; i < polycount; i++) {
-        triangle_t triangle = triangles_to_render[i];
+    
+    // draw all of the triangles residing in g_renderQueue based on the rendering mode selected  
+    for(int i = 0; i < g_triangleCounter; i++) {
+        triangle_t triangle = g_renderQueue[i];
         
        if(g_renderingMode == RENDER_TEXTURED || g_renderingMode == RENDER_TEXTURED_WIRE) {
            draw_textured_triangle(
@@ -399,10 +412,7 @@ void render(void) {
         } 
     } 
 
-    array_free(triangles_to_render); 
-    /*  Not a great idea, memory management is  kinda bad 
-     *  for now. Generally, I need to stay away from using malloc 
-     *  and free inside update() and render() loops */
+
 
     render_framebuffer();
     clear_framebuffer(COLOR_BLACK);
@@ -411,7 +421,8 @@ void render(void) {
 }
 void free_resources(void) {
     if(framebuffer != NULL) free(framebuffer);
-    if(g_Zbuffer != NULL) free(g_Zbuffer);  
+    if(g_Zbuffer != NULL) free(g_Zbuffer);
+    if(g_renderQueue != NULL) free(g_renderQueue);   
     array_free(mesh.faces);
     array_free(mesh.verts);
     upng_free(png_texture); 
