@@ -13,10 +13,14 @@
 #include "triangle.h"
 #include "upng.h"
 #include "camera.h"
+#include "controls.h"
 
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 #define  PI_CONST 3.14159
 /* .z rotations are disabled (they work, just did not add controls for them)*/
+
+
+ 
 
 mat4_t g_viewMatrix; 
 
@@ -26,6 +30,7 @@ uint32_t g_triangleCounter = 0;
 
 bool is_running = false;
 int previous_frame_time = 0; // ms
+float g_deltaTime = 0; 
 mat4_t proj_matrix;
 char modelPath[] = "./assets/crab.obj"; // Usage: manually specify model.
 char texturePath[] = "./assets/crab.png"; //
@@ -124,7 +129,7 @@ bool setup(void) {
     g_renderingMode = RENDER_TEXTURED;
     g_cullMethod = CULL_BACKFACE;  
     g_lightMethod = LIGHT_NONE; 
-    
+    g_controlMode = SPIN; 
     return true; 
 }
 
@@ -140,36 +145,38 @@ void process_input(void) {
             // Quit the program
             if(event.key.keysym.sym == SDLK_ESCAPE)
                 is_running = false;
-            // Rotations
+            if(g_controlMode == MANUAL) {    
+            // Manual camera control
              if (event.key.keysym.sym == SDLK_LEFT)
-                mesh.rotation.y += 0.1;
+                mesh.rotation.y += MESH_ROTATION_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_RIGHT)
-                mesh.rotation.y -= 0.1;
+                mesh.rotation.y -= MESH_ROTATION_FACTOR * g_deltaTime;
              if (event.key.keysym.sym == SDLK_UP)
-                mesh.rotation.x += 0.1;
+                mesh.rotation.x += MESH_ROTATION_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_DOWN)
-                mesh.rotation.x -= 0.1;
+                mesh.rotation.x -= MESH_ROTATION_FACTOR * g_deltaTime;
             // Zoom  TODO add camera control limits
              if(event.key.keysym.sym == SDLK_KP_PLUS)
-                mesh.translation.z += 0.0001;
+                mesh.translation.z += 0.0001 * g_deltaTime;
              if(event.key.keysym.sym == SDLK_KP_MINUS)
-                mesh.translation.z -= 0.0001;
+                mesh.translation.z -= 0.0001 * g_deltaTime;
              if(event.key.keysym.sym == SDLK_KP_8)
-                g_camera.position.z += 0.1;
+                g_camera.position.z += CAM_POS_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_KP_2)
-                g_camera.position.z -= 0.1;
+                g_camera.position.z -= CAM_POS_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_KP_4)
-                g_camera.position.x += 0.1;
+                g_camera.position.x += CAM_POS_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_KP_6)
-                g_camera.position.x -= 0.1;
+                g_camera.position.x -= CAM_POS_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_KP_9)
-                g_camera.position.y += 0.1;
+                g_camera.position.y += CAM_POS_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_KP_3)
-                g_camera.position.y -= 0.1;
+                g_camera.position.y -= CAM_POS_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_q)
-                mesh.scale.x += 0.1;
+                mesh.scale.x += MESH_SCALE_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_e)
-                mesh.scale.x -= 0.1;
+                mesh.scale.x -= MESH_SCALE_FACTOR * g_deltaTime;
+            }
             //Rendering modes
              if(event.key.keysym.sym == SDLK_F1) {
 				 g_renderingMode = RENDER_WIRE;
@@ -201,6 +208,13 @@ void process_input(void) {
 					g_lightMethod = LIGHT_NONE; 	
 				}
             }
+             if(event.key.keysym.sym == SDLK_F9) {
+               if(g_controlMode == SPIN) {
+					g_controlMode = MANUAL;
+				} else {
+					g_controlMode = SPIN; 	
+				}
+            }
                 
             break; 
     }
@@ -211,15 +225,16 @@ void update(void) {
     // FPS sync.  While not enough ticks passed (see FTT in display.h), delay the update
     int time_to_wait = FTT - (SDL_GetTicks() - previous_frame_time);
     if(time_to_wait > 0) SDL_Delay(time_to_wait);     
+	// update delta time factor (to synchronize updates of scene objects)
+	g_deltaTime = (SDL_GetTicks() - previous_frame_time) / 1000.0;
     previous_frame_time = SDL_GetTicks(); 
  
- 
-	// test camera position 
-	//g_camera.position.x += 0.008;
-	//g_camera.position.y += 0.008;
-
+	// spin the mesh in case spin control mode is active
+	if(g_controlMode == SPIN) {
+		mesh.rotation.y += MESH_SPIN_FACTOR * g_deltaTime;
+	}
     // create the view matrix at a target point (hardcoded for now)
-    vec3_t targetPoint = {0, 0, 10};
+    vec3_t targetPoint = {0, 0, 5};
     vec3_t up_dir = {0, 1, 0};  
     g_viewMatrix = mat4_look_at(g_camera.position, targetPoint, up_dir); 
     
