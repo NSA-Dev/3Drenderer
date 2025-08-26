@@ -12,10 +12,13 @@
 #include "texture.h"
 #include "triangle.h"
 #include "upng.h"
+#include "camera.h"
 
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 #define  PI_CONST 3.14159
 /* .z rotations are disabled (they work, just did not add controls for them)*/
+
+mat4_t g_viewMatrix; 
 
 triangle_t* g_renderQueue = NULL; 
 uint32_t g_polyCount  = 0;
@@ -25,9 +28,7 @@ bool is_running = false;
 int previous_frame_time = 0; // ms
 mat4_t proj_matrix;
 char modelPath[] = "./assets/crab.obj"; // Usage: manually specify model.
-char texturePath[] = "./assets/crab.png"; // 
-/*  vector  declr  */
-vec3_t camera_pos = { 0, 0, 0};
+char texturePath[] = "./assets/crab.png"; //
 
  
 bool setup(void);
@@ -153,14 +154,18 @@ void process_input(void) {
                 mesh.translation.z += 0.0001;
              if(event.key.keysym.sym == SDLK_KP_MINUS)
                 mesh.translation.z -= 0.0001;
-             if(event.key.keysym.sym == SDLK_w)
-                mesh.translation.y += 0.0001;
-             if(event.key.keysym.sym == SDLK_s)
-                mesh.translation.y -= 0.0001;
-             if(event.key.keysym.sym == SDLK_a)
-                mesh.translation.x += 0.0001;
-             if(event.key.keysym.sym == SDLK_d)
-                mesh.translation.x -= 0.0001;
+             if(event.key.keysym.sym == SDLK_KP_8)
+                g_camera.position.z += 0.1;
+             if(event.key.keysym.sym == SDLK_KP_2)
+                g_camera.position.z -= 0.1;
+             if(event.key.keysym.sym == SDLK_KP_4)
+                g_camera.position.x += 0.1;
+             if(event.key.keysym.sym == SDLK_KP_6)
+                g_camera.position.x -= 0.1;
+             if(event.key.keysym.sym == SDLK_KP_9)
+                g_camera.position.y += 0.1;
+             if(event.key.keysym.sym == SDLK_KP_3)
+                g_camera.position.y -= 0.1;
              if(event.key.keysym.sym == SDLK_q)
                 mesh.scale.x += 0.1;
              if(event.key.keysym.sym == SDLK_e)
@@ -208,7 +213,16 @@ void update(void) {
     if(time_to_wait > 0) SDL_Delay(time_to_wait);     
     previous_frame_time = SDL_GetTicks(); 
  
+ 
+	// test camera position 
+	//g_camera.position.x += 0.008;
+	//g_camera.position.y += 0.008;
 
+    // create the view matrix at a target point (hardcoded for now)
+    vec3_t targetPoint = {0, 0, 10};
+    vec3_t up_dir = {0, 1, 0};  
+    g_viewMatrix = mat4_look_at(g_camera.position, targetPoint, up_dir); 
+    
     // create transform  matrices to multiply mesh verts later
     mat4_t scale_matrix = mat4_make_scale(mesh.scale.x, 
                                           mesh.scale.y, 
@@ -279,6 +293,8 @@ void update(void) {
             
             //scale & translate
             temp = mat4_mult_vec4(&world_matrix, &temp);
+            // apply the view matrix to the vertices to move into camera space  
+            temp = mat4_mult_vec4(&g_viewMatrix, &temp);
             // store tranformed result into array 
             transformed_vertices[j] = temp; 
         }
@@ -307,8 +323,9 @@ void update(void) {
             
             // Culling  (clock wise orientation) 
             if(g_cullMethod == CULL_BACKFACE) {
-                // Find camera ray by substracting camera pos from A
-                vec3_t camera_ray = vec3_sub(&camera_pos, &a);
+                // Find camera ray by substracting origin from A
+                vec3_t origin = {0, 0, 0}; // Not sure about this one
+                vec3_t camera_ray = vec3_sub(&origin, &a);
 
                 // check alignment between the normal and camera via dot prod
                 float alignment_factor = vec3_dot(&normal, &camera_ray); 

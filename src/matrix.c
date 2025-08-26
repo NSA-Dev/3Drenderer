@@ -131,3 +131,23 @@ vec4_t mat4_mult_vec4_project(mat4_t* m, vec4_t* v) {
 
     return res;
 }
+
+
+mat4_t mat4_look_at(vec3_t eye, vec3_t target, vec3_t up) {
+	
+	// compute the new x,y,z axis based on target vs eye position
+	vec3_t z = vec3_sub(&target, &eye); 
+	vec3_norm(&z);
+	vec3_t x = vec3_cross(&up, &z);
+	vec3_norm(&x);
+	vec3_t y = vec3_cross(&z, &x); 
+	
+	// resulting view matrix (rotate and translate)
+	mat4_t viewMatrix = {{
+			{x.x, x.y, x.z, -vec3_dot(&x, &eye)},
+			{y.x, y.y, y.z, -vec3_dot(&y, &eye)},
+			{z.x, z.y, z.z, -vec3_dot(&z, &eye)},
+			{  0,   0,   0,					  1}
+	}};  
+	return viewMatrix; 
+}
