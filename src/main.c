@@ -32,8 +32,8 @@ bool is_running = false;
 int previous_frame_time = 0; // ms
 float g_deltaTime = 0; 
 mat4_t proj_matrix;
-char modelPath[] = "./assets/crab.obj"; // Usage: manually specify model.
-char texturePath[] = "./assets/crab.png"; //
+char modelPath[] = "./assets/f117.obj"; // Usage: manually specify model.
+char texturePath[] = "./assets/f117.png"; //
 
  
 bool setup(void);
@@ -160,6 +160,27 @@ void process_input(void) {
                 mesh.translation.z += 0.0001 * g_deltaTime;
              if(event.key.keysym.sym == SDLK_KP_MINUS)
                 mesh.translation.z -= 0.0001 * g_deltaTime;
+		// cam controls << active only if g_controlMode == MANUAL   
+		   // going too close to the obj 
+		   //  or out of bounds crashes the program, due to perspective
+		   // projection errors 
+             if(event.key.keysym.sym == SDLK_a)
+                g_camera.yaw += CAM_YAW_FACTOR * g_deltaTime;
+             if(event.key.keysym.sym == SDLK_d)
+                g_camera.yaw -= CAM_YAW_FACTOR * g_deltaTime;
+                
+             if(event.key.keysym.sym == SDLK_w) {
+                g_camera.forwardVelocity = vec3_mul(&g_camera.direction, 
+									 CAM_VELOCITY_FACTOR * g_deltaTime);
+                g_camera.position = vec3_add(&g_camera.position, 
+											&g_camera.forwardVelocity); 
+             }
+             if(event.key.keysym.sym == SDLK_s) {
+                g_camera.forwardVelocity = vec3_mul(&g_camera.direction, 
+									 CAM_VELOCITY_FACTOR * g_deltaTime);
+                g_camera.position = vec3_sub(&g_camera.position, 
+											&g_camera.forwardVelocity);  
+             }
              if(event.key.keysym.sym == SDLK_KP_8)
                 g_camera.position.z += CAM_POS_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_KP_2)
@@ -172,12 +193,13 @@ void process_input(void) {
                 g_camera.position.y += CAM_POS_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_KP_3)
                 g_camera.position.y -= CAM_POS_FACTOR * g_deltaTime;
+           // stretch the mesh
              if(event.key.keysym.sym == SDLK_q)
                 mesh.scale.x += MESH_SCALE_FACTOR * g_deltaTime;
              if(event.key.keysym.sym == SDLK_e)
                 mesh.scale.x -= MESH_SCALE_FACTOR * g_deltaTime;
             }
-            //Rendering modes
+            // Rendering modes
              if(event.key.keysym.sym == SDLK_F1) {
 				 g_renderingMode = RENDER_WIRE;
             }    
@@ -233,10 +255,26 @@ void update(void) {
 	if(g_controlMode == SPIN) {
 		mesh.rotation.y += MESH_SPIN_FACTOR * g_deltaTime;
 	}
-    // create the view matrix at a target point (hardcoded for now)
-    vec3_t targetPoint = {0, 0, 5};
-    vec3_t up_dir = {0, 1, 0};  
+    
+    vec3_t up_dir = {0, 1, 0};
+    // Find new target point for the FPS cam
+    vec3_t targetPoint = {0, 0, 1}; // look at positive Z (LH coord sys)
+    mat4_t rotation_cameraYaw = mat4_make_rotation_y(g_camera.yaw);
+    
+    // Jfc there has to be a better way
+    // unfolding lecturer's code (have to pay for abusing pointers)
+    vec4_t targetPoint_vec4 = vec4_from_vec3(&targetPoint); 
+    vec4_t mat4_product = mat4_mult_vec4(&rotation_cameraYaw, &targetPoint_vec4); 
+    vec3_t newDirection = vec3_from_vec4(&mat4_product);
+    g_camera.direction = newDirection;  
+ 
+    targetPoint = vec3_add(&g_camera.position, &g_camera.direction); 
+    
+     
+    // prep finished, assign the view to g_viewMatrix
     g_viewMatrix = mat4_look_at(g_camera.position, targetPoint, up_dir); 
+    
+
     
     // create transform  matrices to multiply mesh verts later
     mat4_t scale_matrix = mat4_make_scale(mesh.scale.x, 
