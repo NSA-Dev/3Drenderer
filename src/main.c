@@ -14,15 +14,13 @@
 #include "upng.h"
 #include "camera.h"
 #include "controls.h"
-
+#include "clipping.h"
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 #define  PI_CONST 3.14159
-/* .z rotations are disabled (they work, just did not add controls for them)*/
-
-
- 
-
 mat4_t g_viewMatrix; 
+
+
+
 
 triangle_t* g_renderQueue = NULL; 
 uint32_t g_polyCount  = 0;
@@ -114,6 +112,9 @@ bool setup(void) {
     float aspect = (float) win_h / (float) win_w;
     float znear = 0.1;
     float zfar = 100.0;
+    
+    // pass the data above to the view frustum
+    init_frustum_planes(fov, znear, zfar); 
     
     // Init projection matrix 
     proj_matrix =  mat4_make_perspective(fov, aspect, znear, zfar);
