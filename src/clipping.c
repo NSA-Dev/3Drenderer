@@ -38,4 +38,24 @@ void init_frustum_planes(float fov, float zNear, float zFar) {
     g_viewPlanes[FAR_FRUSTUM_PLANE].normal.z = -1;
     
 
+} 
+
+polygon_t createPolygon(vec3_t* v0, vec3_t* v1, vec3_t* v2) {
+    polygon_t res = {
+        .verts = {*v0,*v1, *v2},
+        .num_verts = 3 
+    };
+    return res; 
+}
+
+void clipPolygon(polygon_t* polygon) {
+    // Clipping order left > right > top > bottom > near > far
+    // See clipping.h for enum def  
+    for(planeIndex_t i = LEFT_FRUSTUM_PLANE; i <= FAR_FRUSTUM_PLANE; i++) {
+        clipAgainstPlane(polygon, i); 
+    }  
+}
+
+void clipAgainstPlane(polygon_t* polygon, planeIndex_t i) {
+    // TODO 
 }

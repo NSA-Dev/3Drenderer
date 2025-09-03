@@ -395,6 +395,20 @@ void update(void) {
                 mesh_face.color = light_apply_intensity(mesh_face.color, ray_alignment); 
             }
     
+            // Clipping step
+            // Create a temp polygon for clipping (from the original triangle)
+            // The data for clipping is taken from  transformed_vertices[n],
+            // but since its type is vec4_t instead of converting again,
+            // the vec3_t versions are used from lines: 359-361
+            
+            // TODO check if this^^^ actually works 
+            
+            polygon_t polygon = createPolygon(&a, &b, &c);
+            clipPolygon(&polygon); // pass the ref to the clipping sys  
+
+            // After the poly is clipped, it needs to be broken into new triangles
+            // in case the number of vertices goes up
+
         /* Rest of the update  */    
     
             // Projection step
