@@ -57,5 +57,66 @@ void clipPolygon(polygon_t* polygon) {
 }
 
 void clipAgainstPlane(polygon_t* polygon, planeIndex_t i) {
-    // TODO 
+    vec3_t* planePoint = &g_viewPlanes[i].point; 
+    vec3_t* planeNormal = &g_viewPlanes[i].normal;
+
+    // declare the array corresponding to the inside vert list
+    vec3_t insideVerts[VERT_LIMIT];
+    int insideCounter = 0;
+    vec3_t substracted; // temp variable
+
+    // set current & last vertex pointers (On init: current - first prev - last)
+    vec3_t* currentVertex = &polygon->verts[0];
+    vec3_t* previousVertex = &polygon->verts[polygon->num_verts - 1]; 
+    
+    // pre-calculate dot products for current & previous (last)
+    // i.e. determine if curr & prev are inside the plane
+    substracted = vec3_sub(previousVertex, planePoint); 
+    float previousDot = vec3_dot(&substracted, planeNormal); 
+    float currentDot = 0; 
+    // The loop interval is alw limited by polygon->num_verts, which can go out of bounds?
+    while(currentVertex != &polygon->verts[polygon->num_verts]) { 
+        substracted = vec3_sub(currentVertex, planePoint);
+        currentDot = vec3_dot(&substracted, planeNormal);
+        // test for plane intersection between the current & prev vertices
+        if(currentDot * previousDot < 0) {
+            // if result above is negative we need to determine the intersection
+            // and add it to the both lists  
+            vec3_t intersectionPoint = calculateIntersection(currentVertex, 
+                                                             previousVertex,
+                                                             previousDot, currentDot);
+            insideVerts[insideCounter] = intersectionPoint;
+            insideCounter++; 
+        }
+        
+        if(currentDot > 0) {
+            insideVerts[insideCounter] = *currentVertex;
+            insideCounter++;   
+        }
+        previousDot = currentDot; 
+        previousVertex = currentVertex; 
+        currentVertex++;
+    } 
+
+
+    // make a polygon out of resulting insideVertices and write to the polygon pased as a ref
+    for(int i = 0; i < insideCounter; i++) {
+        polygon->verts[i] = insideVerts[i];
+    } 
+    polygon->num_verts = insideCounter; 
 }
+
+vec3_t calculateIntersection(vec3_t* v0, vec3_t* v1, float d0, float d1) {
+    // calculate intersection point I via I = V0 + t(V1 - V0)
+    // where t is the interpolation factor and equal to:
+    // t = d0 / (d0 - d1) with d0, d1 being respective dot products with a plane normal
+
+    float t = d0 / (d0 - d1);
+    vec3_t temp;
+
+    temp = vec3_sub(v1, v0);
+    temp = vec3_mul(&temp, t); 
+    temp = vec3_add(&temp, v0);
+
+    return temp;
+};
