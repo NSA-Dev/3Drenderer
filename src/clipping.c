@@ -119,4 +119,23 @@ vec3_t calculateIntersection(vec3_t* v0, vec3_t* v1, float d0, float d1) {
     temp = vec3_add(&temp, v0);
 
     return temp;
-};
+}
+
+int getTriangleCount(polygon_t* polygon) {
+    return (int) polygon->num_verts - 2; 
+}
+
+
+// slices the polygon into individual triangles (according to the count) 
+// and writes the results into provided storage array
+void slicePolygon(polygon_t* polygon, triangle_t storage[], int slicesCount) { 
+    for(int i = 0; i < slicesCount; i++) {
+        int index0 = 0;
+        int index1 = i + 1;
+        int index2 = i + 2;
+        
+        storage[i].points[0] = vec4_from_vec3(&polygon->verts[index0]);
+        storage[i].points[1] = vec4_from_vec3(&polygon->verts[index1]); 
+        storage[i].points[2] = vec4_from_vec3(&polygon->verts[index2]);  
+    }
+}

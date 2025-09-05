@@ -30,8 +30,8 @@ bool is_running = false;
 int previous_frame_time = 0; // ms
 float g_deltaTime = 0; 
 mat4_t proj_matrix;
-char modelPath[] = "./assets/f117.obj"; // Usage: manually specify model.
-char texturePath[] = "./assets/f117.png"; //
+char modelPath[] = "./assets/cube.obj"; // Usage: manually specify model.
+char texturePath[] = "./assets/cube.png"; //
 
  
 bool setup(void);
@@ -311,6 +311,7 @@ void update(void) {
     /* Main transformation loop, goes through all of the faces and applies
      * transformation data */
     for(int i = 0; i < num_faces; i++) {
+		if(i != 4) continue;
 
         face_t mesh_face = mesh.faces[i];
         mesh_face.color = 0xFFFFFFFF; // draw white mesh
@@ -405,51 +406,63 @@ void update(void) {
             
             polygon_t polygon = createPolygon(&a, &b, &c);
             clipPolygon(&polygon); // pass the ref to the clipping sys  
-
-            // After the poly is clipped, it needs to be broken into new triangles
-            // in case the number of vertices goes up
-
-        /* Rest of the update  */    
-    
-            // Projection step
-            for(int j = 0; j < 3; j++) {
             
-                vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &transformed_vertices[j]);
-                        
+            // stores results  of the clipping operation 
+            triangle_t clippedTriangles[CLIP_TRIANGLE_LIMIT];
             
-                // Note: on widescreen x is scalled height and y by width
-                // This is the opposite of what was shown in the materials.
-                // scale projection into view
-                projected.x *= (win_h / 2.0); // -1 here mirrored my textures -_-
-				projected.y *= -(win_w / 2.0);
-                // Inverting y & x is the necessary
-                // (model values come bottom up, which is the opposite of screen space y) 
-                // the same is  true for x. This has to do with their orientation in .obj files 
+            int triangleCount = getTriangleCount(&polygon); // get number of slices 
+            slicePolygon(&polygon, clippedTriangles, triangleCount); // slice and write into clippedTriangles
+            
+            
+            // loop assembled triangles after clipping
+            for(int t = 0; t < triangleCount; t++) {
+				triangle_t* clippedTriangle = &clippedTriangles[t]; 
 
-                // translate it to screen center
-                projected.x += (win_w / 2.0); 
-                projected.y += (win_h / 2.0);
-            
+				// After the poly is clipped, it needs to be broken into new triangles
+				// in case the number of vertices goes up
 
-                // Note to self:
-                // An explicit typecast is required here, since a compiler has no clue 
-                // about which type to use for this field
-                projected_triangle.points[j] = (vec4_t) {
-                    .x = projected.x,
-                    .y = projected.y,
-                    // since updated struct field to vec4_t, we save z & w for correct rasterization later
-                    .z = projected.z, 
-                    .w = projected.w
-                }; 
-            }
-            // add color data to the triangle
-            projected_triangle.color = mesh_face.color;
-            
-        // save calculated data for rendering (suspect that it crashes on stretch)
-		if(g_triangleCounter < g_polyCount) {
-			g_renderQueue[g_triangleCounter] = projected_triangle;
-			g_triangleCounter++; 
-		}
+			/* Rest of the update  */    
+		
+				// Projection step
+				for(int j = 0; j < 3; j++) {
+				
+				   // vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &transformed_vertices[j]);
+					
+					vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &clippedTriangle->points[j]);             
+				
+					// Note: on widescreen x is scalled height and y by width
+					// This is the opposite of what was shown in the materials.
+					// scale projection into view
+					projected.x *= (win_h / 2.0); // -1 here mirrored my textures -_-
+					projected.y *= -(win_w / 2.0);
+					// Inverting y & x is the necessary
+					// (model values come bottom up, which is the opposite of screen space y) 
+					// the same is  true for x. This has to do with their orientation in .obj files 
+
+					// translate it to screen center
+					projected.x += (win_w / 2.0); 
+					projected.y += (win_h / 2.0);
+				
+
+					// Note to self:
+					// An explicit typecast is required here, since a compiler has no clue 
+					// about which type to use for this field
+					projected_triangle.points[j] = (vec4_t) {
+						.x = projected.x,
+						.y = projected.y,
+						// since updated struct field to vec4_t, we save z & w for correct rasterization later
+						.z = projected.z, 
+						.w = projected.w
+					}; 
+				}
+				// add color data to the triangle
+				projected_triangle.color = mesh_face.color;
+				
+			// save calculated data for rendering
+			if(g_triangleCounter < g_polyCount) {
+				g_renderQueue[g_triangleCounter] = projected_triangle;
+				g_triangleCounter++; 
+			}
 
     }
 
@@ -458,7 +471,8 @@ void update(void) {
     if(mesh.rotation.x > R_LIMIT) mesh.rotation.x -= R_LIMIT;
     if(mesh.rotation.x < R_LIMIT) mesh.rotation.x += R_LIMIT;
     if(mesh.rotation.y > R_LIMIT) mesh.rotation.y -= R_LIMIT;
-    if(mesh.rotation.y < R_LIMIT) mesh.rotation.y += R_LIMIT;   
+    if(mesh.rotation.y < R_LIMIT) mesh.rotation.y += R_LIMIT; 
+    }  
 }
 
 void render(void) {

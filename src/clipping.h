@@ -3,8 +3,9 @@
 
 #define  NUM_PLANES 6
 #define  VERT_LIMIT 10  // arbitrary
+#define  CLIP_TRIANGLE_LIMIT 10
 #include "vector.h"
- 
+#include "triangle.h" 
 
 typedef enum {
     LEFT_FRUSTUM_PLANE,
@@ -34,4 +35,6 @@ polygon_t createPolygon(vec3_t* v0, vec3_t* v1, vec3_t* v2);
 void clipPolygon(polygon_t* polygon); 
 void clipAgainstPlane(polygon_t* polygon, planeIndex_t i);
 vec3_t calculateIntersection(vec3_t* v0, vec3_t* v1, float d0, float d1);
+int getTriangleCount(polygon_t* polygon); 
+void slicePolygon(polygon_t* polygon, triangle_t storage[], int slicesCount); 
 #endif
