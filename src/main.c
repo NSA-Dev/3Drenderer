@@ -245,9 +245,9 @@ void process_input(void) {
 
 
 void update(void) {
-    // FPS sync.  While not enough ticks passed (see FTT in display.h), delay the update
+    // Frame sync. While not enough ticks passed (see FTT in display.h), delay the update
     int time_to_wait = FTT - (SDL_GetTicks() - previous_frame_time);
-    if(time_to_wait > 0) SDL_Delay(time_to_wait);     
+    if(time_to_wait > 0 && time_to_wait <= FTT) SDL_Delay(time_to_wait);     
 	// update delta time factor (to synchronize updates of scene objects)
 	g_deltaTime = (SDL_GetTicks() - previous_frame_time) / 1000.0;
     previous_frame_time = SDL_GetTicks(); 
@@ -311,7 +311,7 @@ void update(void) {
     /* Main transformation loop, goes through all of the faces and applies
      * transformation data */
     for(int i = 0; i < num_faces; i++) {
-		if(i != 4) continue;
+		// DEBUG if(i != 4) continue;
 
         face_t mesh_face = mesh.faces[i];
         mesh_face.color = 0xFFFFFFFF; // draw white mesh
@@ -369,7 +369,6 @@ void update(void) {
         
             // Find their normal via cross product 
             vec3_t normal = vec3_cross(&b_a, &c_a);
-        
             // normalize it since only direction is relevant
             vec3_norm(&normal);
 
@@ -411,8 +410,9 @@ void update(void) {
             triangle_t clippedTriangles[CLIP_TRIANGLE_LIMIT];
             
             int triangleCount = getTriangleCount(&polygon); // get number of slices 
-            slicePolygon(&polygon, clippedTriangles, triangleCount); // slice and write into clippedTriangles
+            slicePolygon(&polygon, clippedTriangles, &triangleCount); // slice and write into clippedTriangles
             
+            // DEBUG: triangleCount overwritten by slicePolygon call
             
             // loop assembled triangles after clipping
             for(int t = 0; t < triangleCount; t++) {
@@ -426,9 +426,9 @@ void update(void) {
 				// Projection step
 				for(int j = 0; j < 3; j++) {
 				
-				   // vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &transformed_vertices[j]);
+				   vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &clippedTriangle->points[j]);
 					
-					vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &clippedTriangle->points[j]);             
+					//vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &clippedTriangle->points[j]);             
 				
 					// Note: on widescreen x is scalled height and y by width
 					// This is the opposite of what was shown in the materials.

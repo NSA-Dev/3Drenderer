@@ -36,5 +36,5 @@ void clipPolygon(polygon_t* polygon);
 void clipAgainstPlane(polygon_t* polygon, planeIndex_t i);
 vec3_t calculateIntersection(vec3_t* v0, vec3_t* v1, float d0, float d1);
 int getTriangleCount(polygon_t* polygon); 
-void slicePolygon(polygon_t* polygon, triangle_t storage[], int slicesCount); 
+void slicePolygon(polygon_t* polygon, triangle_t storage[], int* slicesCounter); 
 #endif

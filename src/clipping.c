@@ -60,6 +60,8 @@ void clipAgainstPlane(polygon_t* polygon, planeIndex_t i) {
     vec3_t* planePoint = &g_viewPlanes[i].point; 
     vec3_t* planeNormal = &g_viewPlanes[i].normal;
 
+    // STOPPED DEBUGING HERE 
+
     // declare the array corresponding to the inside vert list
     vec3_t insideVerts[VERT_LIMIT];
     int insideCounter = 0;
@@ -81,7 +83,7 @@ void clipAgainstPlane(polygon_t* polygon, planeIndex_t i) {
         // test for plane intersection between the current & prev vertices
         if(currentDot * previousDot < 0) {
             // if result above is negative we need to determine the intersection
-            // and add it to the both lists  
+            // and add it to  both lists  
             vec3_t intersectionPoint = calculateIntersection(currentVertex, 
                                                              previousVertex,
                                                              previousDot, currentDot);
@@ -128,8 +130,8 @@ int getTriangleCount(polygon_t* polygon) {
 
 // slices the polygon into individual triangles (according to the count) 
 // and writes the results into provided storage array
-void slicePolygon(polygon_t* polygon, triangle_t storage[], int slicesCount) { 
-    for(int i = 0; i < slicesCount; i++) {
+void slicePolygon(polygon_t* polygon, triangle_t storage[],  int* slicesCounter) { 
+    for(int i = 0; i < polygon->num_verts - 2; i++) {
         int index0 = 0;
         int index1 = i + 1;
         int index2 = i + 2;
@@ -138,4 +140,6 @@ void slicePolygon(polygon_t* polygon, triangle_t storage[], int slicesCount) {
         storage[i].points[1] = vec4_from_vec3(&polygon->verts[index1]); 
         storage[i].points[2] = vec4_from_vec3(&polygon->verts[index2]);  
     }
+    // side effect
+    *slicesCounter = polygon->num_verts - 2;
 }
