@@ -59,9 +59,7 @@ void clipPolygon(polygon_t* polygon) {
 void clipAgainstPlane(polygon_t* polygon, planeIndex_t i) {
     vec3_t* planePoint = &g_viewPlanes[i].point; 
     vec3_t* planeNormal = &g_viewPlanes[i].normal;
-
-    // STOPPED DEBUGING HERE 
-
+    
     // declare the array corresponding to the inside vert list
     vec3_t insideVerts[VERT_LIMIT];
     int insideCounter = 0;
@@ -83,10 +81,15 @@ void clipAgainstPlane(polygon_t* polygon, planeIndex_t i) {
         // test for plane intersection between the current & prev vertices
         if(currentDot * previousDot < 0) {
             // if result above is negative we need to determine the intersection
-            // and add it to  both lists  
-            vec3_t intersectionPoint = calculateIntersection(currentVertex, 
-                                                             previousVertex,
-                                                             previousDot, currentDot);
+            // and add it to  both lists
+            // Calculate intersection point
+            float t = previousDot / (previousDot - currentDot);
+            vec3_t intersectionPoint = *currentVertex;
+            intersectionPoint = vec3_sub(&intersectionPoint, previousVertex);            
+            intersectionPoint = vec3_mul(&intersectionPoint, t);
+            intersectionPoint = vec3_add(&intersectionPoint, previousVertex); 
+            
+            // insert the plane intersection point into the inside vertex list 
             insideVerts[insideCounter] = intersectionPoint;
             insideCounter++; 
         }
@@ -106,21 +109,6 @@ void clipAgainstPlane(polygon_t* polygon, planeIndex_t i) {
         polygon->verts[i] = insideVerts[i];
     } 
     polygon->num_verts = insideCounter; 
-}
-
-vec3_t calculateIntersection(vec3_t* v0, vec3_t* v1, float d0, float d1) {
-    // calculate intersection point I via I = V0 + t(V1 - V0)
-    // where t is the interpolation factor and equal to:
-    // t = d0 / (d0 - d1) with d0, d1 being respective dot products with a plane normal
-
-    float t = d0 / (d0 - d1);
-    vec3_t temp;
-
-    temp = vec3_sub(v1, v0);
-    temp = vec3_mul(&temp, t); 
-    temp = vec3_add(&temp, v0);
-
-    return temp;
 }
 
 int getTriangleCount(polygon_t* polygon) {
