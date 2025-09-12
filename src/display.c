@@ -9,8 +9,8 @@ SDL_Renderer* renderer = NULL;
 uint32_t* framebuffer = NULL;
 float* g_Zbuffer = NULL; 
 SDL_Texture* framebuffer_texture = NULL;
-int win_w = 1920;    // fallback value
-int win_h = 1080;    // fallback value
+int win_w = 800;    // fallback value
+int win_h = 600;    // fallback value
 
 bool init_win(void) {
 
