@@ -108,16 +108,20 @@ bool setup(void) {
 	
 	
     // Renderer settings
-    float fov = PI_CONST / 3.0; 
-    float aspect = (float) win_h / (float) win_w;
-    float znear = 0.1;
-    float zfar = 100.0;
+    float aspectY = (float) win_h / (float) win_w; 
+    float aspectX = (float) win_w / (float) win_h;  
+
+    float fovY = (3.141592 / 3.0);   //PI_CONST / 3.0;
+    float fovX = atan(tan(fovY / 2.0) * aspectX) * 2;
+ 
+    float znear = 0.1;  // old znear  0.1
+    float zfar = 100.0;  //old zfar 100.0
     
-    // pass the data above to the view frustum
-    init_frustum_planes(fov, znear, zfar); 
-    
+
+    init_frustum_planes(fovY, znear, zfar);  
+
     // Init projection matrix 
-    proj_matrix =  mat4_make_perspective(fov, aspect, znear, zfar);
+    proj_matrix =  mat4_make_perspective(fovY, aspectY, znear, zfar);
     mesh.translation.z = 5; // default "camera" depth
 
 
@@ -287,7 +291,6 @@ void update(void) {
                                                       mesh.translation.z
                                                      );
     
-    // could stand some revision I'd say
     mat4_t rotation_x = mat4_make_rotation_x(mesh.rotation.x);
     mat4_t rotation_y = mat4_make_rotation_y(mesh.rotation.y);
     mat4_t rotation_z = mat4_make_rotation_z(mesh.rotation.z); 
@@ -399,10 +402,7 @@ void update(void) {
             // Create a temp polygon for clipping (from the original triangle)
             // The data for clipping is taken from  transformed_vertices[n],
             // but since its type is vec4_t instead of converting again,
-            // the vec3_t versions are used from lines: 359-361
-            
-            // TODO check if this^^^ actually works 
-            
+            // the vec3_t versions are used from lines: 359-361  
             polygon_t polygon = createPolygon(&a, &b, &c);
             clipPolygon(&polygon); // pass the ref to the clipping sys  
             

@@ -27,7 +27,6 @@ typedef enum {
 	LIGHT_BASIC
 } LightMethod;
 
-
 /* global declarations*/
 extern RenderingMode g_renderingMode;
 extern CullMethod g_cullMethod;

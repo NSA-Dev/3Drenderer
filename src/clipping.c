@@ -1,36 +1,48 @@
 #include "clipping.h"
 #include <math.h>
+#include "display.h"
+
 plane_t g_viewPlanes[NUM_PLANES]; // contains view frustum planes responsible for clipping
 
-void init_frustum_planes(float fov, float zNear, float zFar) {
-    float sin_half_fov = sin(fov/2.0);
-    float cos_half_fov = cos(fov/2.0);  
+void init_frustum_planes(float fovY, float zNear, float zFar) {
+    // Get screen dimensions and calculate their halves 
+    float half_h = win_h / 2.0;
+    float half_w = win_w / 2.0; 
     
+    // Compute individual fov angles 
+    // compute top
+    float fovT = fovY / 2;
+    //compute bottom
+    float fovB = atan(tan(fovT) * (half_h - 1) / half_h);
+    //compute left
+    float fovL = atan(tan(fovT) * (half_w / half_h));
+    // compute right
+    float fovR = atan(tan(fovL) * (half_w - 1) / half_w);
  // Left plane  
     g_viewPlanes[LEFT_FRUSTUM_PLANE].point = (vec3_t) {0, 0, 0};
-    g_viewPlanes[LEFT_FRUSTUM_PLANE].normal.x = cos_half_fov;
+    g_viewPlanes[LEFT_FRUSTUM_PLANE].normal.x = cos(fovL);
     g_viewPlanes[LEFT_FRUSTUM_PLANE].normal.y = 0;
-    g_viewPlanes[LEFT_FRUSTUM_PLANE].normal.z = sin_half_fov;
+    g_viewPlanes[LEFT_FRUSTUM_PLANE].normal.z = sin(fovL);
  // Right plane  
     g_viewPlanes[RIGHT_FRUSTUM_PLANE].point = (vec3_t) {0, 0, 0};
-    g_viewPlanes[RIGHT_FRUSTUM_PLANE].normal.x = -cos_half_fov;
+    g_viewPlanes[RIGHT_FRUSTUM_PLANE].normal.x = -cos(fovR);
     g_viewPlanes[RIGHT_FRUSTUM_PLANE].normal.y = 0;
-    g_viewPlanes[RIGHT_FRUSTUM_PLANE].normal.z = sin_half_fov;
+    g_viewPlanes[RIGHT_FRUSTUM_PLANE].normal.z = sin(fovR);
  // Top plane  
     g_viewPlanes[TOP_FRUSTUM_PLANE].point = (vec3_t) {0, 0, 0};
     g_viewPlanes[TOP_FRUSTUM_PLANE].normal.x = 0;
-    g_viewPlanes[TOP_FRUSTUM_PLANE].normal.y = -cos_half_fov;
-    g_viewPlanes[TOP_FRUSTUM_PLANE].normal.z = sin_half_fov;
+    g_viewPlanes[TOP_FRUSTUM_PLANE].normal.y = -cos(fovT);
+    g_viewPlanes[TOP_FRUSTUM_PLANE].normal.z = sin(fovT);
  // Bottom plane  
     g_viewPlanes[BOTTOM_FRUSTUM_PLANE].point = (vec3_t) {0, 0, 0};
     g_viewPlanes[BOTTOM_FRUSTUM_PLANE].normal.x = 0;
-    g_viewPlanes[BOTTOM_FRUSTUM_PLANE].normal.y = cos_half_fov;
-    g_viewPlanes[BOTTOM_FRUSTUM_PLANE].normal.z = sin_half_fov;
+    g_viewPlanes[BOTTOM_FRUSTUM_PLANE].normal.y = cos(fovB);
+    g_viewPlanes[BOTTOM_FRUSTUM_PLANE].normal.z = sin(fovB);
  // Near plane  
     g_viewPlanes[NEAR_FRUSTUM_PLANE].point = (vec3_t) {0, 0, zNear};
     g_viewPlanes[NEAR_FRUSTUM_PLANE].normal.x = 0;
     g_viewPlanes[NEAR_FRUSTUM_PLANE].normal.y = 0;
-    g_viewPlanes[NEAR_FRUSTUM_PLANE].normal.z = 1;;
+    g_viewPlanes[NEAR_FRUSTUM_PLANE].normal.z = 1;
  // Far plane  
     g_viewPlanes[FAR_FRUSTUM_PLANE].point = (vec3_t) {0, 0, zFar};
     g_viewPlanes[FAR_FRUSTUM_PLANE].normal.x = 0;
@@ -38,7 +50,8 @@ void init_frustum_planes(float fov, float zNear, float zFar) {
     g_viewPlanes[FAR_FRUSTUM_PLANE].normal.z = -1;
     
 
-} 
+}
+
 
 polygon_t createPolygon(vec3_t* v0, vec3_t* v1, vec3_t* v2) {
     polygon_t res = {
