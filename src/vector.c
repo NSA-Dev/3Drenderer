@@ -142,10 +142,8 @@ void vec3_rotate_y(vec3_t* v, float angle) {
 void vec3_rotate_z(vec3_t* v, float angle) {
    float r_cos = cos(angle);
    float r_sin = sin(angle);
-
    float r_x = (v->x * r_cos) - (v->y * r_sin);
    float r_y = (v->y * r_cos) + (v->x * r_sin);
-
    v->x = r_x;
    v->y = r_y;
 }
@@ -159,7 +157,6 @@ vec4_t vec4_from_vec3(vec3_t* v) {
         .z = v->z,
         .w = 1.0
     };
-
     return res; 
 }
 
@@ -169,7 +166,6 @@ vec3_t vec3_from_vec4(vec4_t* v) {
         .y = v->y,
         .z = v->z
     };
-
     return res;
 }
 
@@ -180,6 +176,15 @@ vec2_t vec2_from_vec4(vec4_t* v) {
         .x = v->x,
         .y = v->y
     };
-
     return res;
+}
+
+vec3_t vec3_new(float x, float y, float z) {
+    vec3_t res = { x, y, z }; 
+    return res; 
+}
+
+vec3_t vec3_clone(vec3_t* targetVector) {
+    vec3_t res = {targetVector->x, targetVector->y, targetVector->z};
+    return res; 
 }

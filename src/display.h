@@ -4,9 +4,10 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 
-
+#define MAX_TRIANGLES 10000  
 #define FPS 60
 #define FTT (1000 / FPS)
+#define DEFAULT_CAM_DEPTH 5
 
 typedef enum {
 	RENDER_WIRE,

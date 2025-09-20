@@ -39,7 +39,7 @@ bool init_win(void) {
             SDL_WINDOWPOS_CENTERED, // pos Y
             win_w,                  // width
             win_h,                  // height
-            SDL_WINDOW_FULLSCREEN   // winMode                    
+            SDL_WINDOW_BORDERLESS   // winMode                    
     );
     
     if(!window) {

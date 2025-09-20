@@ -17,21 +17,18 @@
 #include "clipping.h"
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 #define  PI_CONST 3.14159
-mat4_t g_viewMatrix; 
 
-
-
-
+mat4_t g_viewMatrix;
+mat4_t g_worldMatrix; 
 triangle_t* g_renderQueue = NULL; 
 uint32_t g_polyCount  = 0;
 uint32_t g_triangleCounter = 0; 
-
 bool is_running = false;
 int previous_frame_time = 0; // ms
 float g_deltaTime = 0; 
 mat4_t proj_matrix;
-char modelPath[] = "./assets/cube.obj"; // Usage: manually specify model.
-char texturePath[] = "./assets/cube.png"; //
+char modelPath[] = "./assets/crab.obj"; 
+char texturePath[] = "./assets/cube.png"; 
 
  
 bool setup(void);
@@ -106,32 +103,25 @@ bool setup(void) {
 		return false; 
 	}
 	
-	
-    // Renderer settings
-    float aspectY = (float) win_h / (float) win_w; 
-    float aspectX = (float) win_w / (float) win_h;  
-
-    float fovY = (3.141592 / 3.0);   //PI_CONST / 3.0;
-    float fovX = atan(tan(fovY / 2.0) * aspectX) * 2;
- 
-    float znear = 0.1;  // old znear  0.1
-    float zfar = 100.0;  //old zfar 100.0
+    // Init view settings 
+    float aspect_y = (float)win_h / (float)win_w;
+    float aspect_x = (float)win_w / (float)win_h;
+    float fov_y = 3.141592 / 2.0; // the same as 180/3, or 60deg
+    float fov_x = atan(tan(fov_y / 2) * aspect_x) * 2;
+    float z_near = 1.0;
+    float z_far = 20.0;
+    proj_matrix = mat4_make_perspective(fov_y, aspect_y, z_near, z_far);
     
-
-    init_frustum_planes(fovY, znear, zfar);  
-
-    // Init projection matrix 
-    proj_matrix =  mat4_make_perspective(fovY, aspectY, znear, zfar);
-    mesh.translation.z = 5; // default "camera" depth
-
-
+    // Initialize frustum planes with a point and a normal
+    initFrustumPlanes(fov_x, fov_y, z_near, z_far);  
+    
     // .png Texture loading 
     if(!load_png_textureData(texturePath)) {
 			printf("Error: unable to open provided texture.\n Loading default..."); 
 			mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
 	}
      
-    g_renderingMode = RENDER_TEXTURED;
+    g_renderingMode = RENDER_WIRE_VERTEX;
     g_cullMethod = CULL_BACKFACE;  
     g_lightMethod = LIGHT_NONE; 
     g_controlMode = SPIN; 
@@ -162,9 +152,9 @@ void process_input(void) {
                 mesh.rotation.x -= MESH_ROTATION_FACTOR * g_deltaTime;
             // Zoom  TODO add camera control limits
              if(event.key.keysym.sym == SDLK_KP_PLUS)
-                mesh.translation.z += 0.0001 * g_deltaTime;
+                mesh.translation.z += 1 * g_deltaTime;
              if(event.key.keysym.sym == SDLK_KP_MINUS)
-                mesh.translation.z -= 0.0001 * g_deltaTime;
+                mesh.translation.z -= 1 * g_deltaTime;
 		// cam controls << active only if g_controlMode == MANUAL   
 		   // going too close to the obj 
 		   //  or out of bounds crashes the program, due to perspective
@@ -247,233 +237,152 @@ void process_input(void) {
     }
 }
 
-
 void update(void) {
-    // Frame sync. While not enough ticks passed (see FTT in display.h), delay the update
-    int time_to_wait = FTT - (SDL_GetTicks() - previous_frame_time);
-    if(time_to_wait > 0 && time_to_wait <= FTT) SDL_Delay(time_to_wait);     
-	// update delta time factor (to synchronize updates of scene objects)
-	g_deltaTime = (SDL_GetTicks() - previous_frame_time) / 1000.0;
+    // Synchronize frames before proceeding
+    int elapsedTime = SDL_GetTicks() - previous_frame_time; 
+    int waitTime = FTT - elapsedTime; 
+    if (waitTime > 0 && waitTime <= FTT) {
+        SDL_Delay(waitTime); 
+    }
+    g_deltaTime = (SDL_GetTicks() - previous_frame_time) / 1000.0; 
     previous_frame_time = SDL_GetTicks(); 
- 
-	// spin the mesh in case spin control mode is active
-	if(g_controlMode == SPIN) {
-		mesh.rotation.y += MESH_SPIN_FACTOR * g_deltaTime;
-	}
-    
-    vec3_t up_dir = {0, 1, 0};
-    // Find new target point for the FPS cam
-    vec3_t targetPoint = {0, 0, 1}; // look at positive Z (LH coord sys)
-    mat4_t rotation_cameraYaw = mat4_make_rotation_y(g_camera.yaw);
-    
-    // Jfc there has to be a better way
-    // unfolding lecturer's code (have to pay for abusing pointers)
-    vec4_t targetPoint_vec4 = vec4_from_vec3(&targetPoint); 
-    vec4_t mat4_product = mat4_mult_vec4(&rotation_cameraYaw, &targetPoint_vec4); 
-    vec3_t newDirection = vec3_from_vec4(&mat4_product);
-    g_camera.direction = newDirection;  
- 
-    targetPoint = vec3_add(&g_camera.position, &g_camera.direction); 
-    
-     
-    // prep finished, assign the view to g_viewMatrix
-    g_viewMatrix = mat4_look_at(g_camera.position, targetPoint, up_dir); 
-    
 
-    
-    // create transform  matrices to multiply mesh verts later
-    mat4_t scale_matrix = mat4_make_scale(mesh.scale.x, 
-                                          mesh.scale.y, 
-                                          mesh.scale.z
-                                          ); 
-    mat4_t translation_matrix = mat4_make_translation(mesh.translation.x,
-                                                      mesh.translation.y,
-                                                      mesh.translation.z
-                                                     );
-    
-    mat4_t rotation_x = mat4_make_rotation_x(mesh.rotation.x);
-    mat4_t rotation_y = mat4_make_rotation_y(mesh.rotation.y);
-    mat4_t rotation_z = mat4_make_rotation_z(mesh.rotation.z); 
-    
-	// reset triangle counter
+    // Reset the global triangle counter for this frame
     g_triangleCounter = 0; 
+
+    // Adjust mesh by default values (e.g. if spin mode is active) 
+    if(g_controlMode == SPIN) mesh.rotation.y += MESH_SPIN_FACTOR * g_deltaTime; 
+    mesh.translation.z = DEFAULT_CAM_DEPTH; 
+
+    // Set up default camera  target (looking at the positive z-axis)
+    vec3_t targetPoint = { 0, 0, 1 }; 
+    vec3_t upDirection = { 0, 1, 0 };  
+    mat4_t cameraYawRotation = mat4_make_rotation_y(g_camera.yaw);
+    vec4_t vec4_targetPoint = vec4_from_vec3(&targetPoint); 
+    vec4_t mat4_product = mat4_mult_vec4(&cameraYawRotation, &vec4_targetPoint); 
+    vec3_t currentDirection = vec3_from_vec4(&mat4_product); 
+    g_camera.direction = currentDirection;
+    targetPoint = vec3_add(&g_camera.position, &g_camera.direction); 
+    // Create the view matrix
+    g_viewMatrix = mat4_look_at(g_camera.position, targetPoint, upDirection); 
     
-    
-    int num_faces = g_polyCount;	// leftover
+    // Create scale, rotation and translation matrices 
+    mat4_t scaleMatrix = mat4_make_scale(mesh.scale.x, mesh.scale.y, mesh.scale.z);
+    mat4_t translationMatrix = mat4_make_translation(mesh.translation.x, mesh.translation.y, mesh.translation.z);
+    mat4_t rotationMatrix_x = mat4_make_rotation_x(mesh.rotation.x); 
+    mat4_t rotationMatrix_y = mat4_make_rotation_y(mesh.rotation.y); 
+    mat4_t rotationMatrix_z = mat4_make_rotation_z(mesh.rotation.z); 
 
-    // precalc the world matrix before applying transoformations to the vertices
-    // (scale > rotate > translate) since translation changes origin of the object
-    mat4_t world_matrix = mat4_make_identity();
-    world_matrix = mat4_mult_mat4(&scale_matrix, &world_matrix);
-    world_matrix = mat4_mult_mat4(&rotation_x, &world_matrix);
-    world_matrix = mat4_mult_mat4(&rotation_y, &world_matrix);
-    world_matrix = mat4_mult_mat4(&rotation_z, &world_matrix);
-    world_matrix = mat4_mult_mat4(&translation_matrix, &world_matrix);
+    // Main processing loop for all mesh faces
+    int faceCount = array_length(mesh.faces);  
+    for(int i = 0; i < faceCount; i++) {
+        face_t currentFace = mesh.faces[i];
+        // assign default color
+        currentFace.color = COLOR_GRAY;
 
+        // -1 offset already handled during .obj parsing 
+        vec3_t faceVertices[3]; 
+        faceVertices[0] = mesh.verts[currentFace.a]; 
+        faceVertices[1] = mesh.verts[currentFace.b]; 
+        faceVertices[2] = mesh.verts[currentFace.c]; 
 
-    /* Main transformation loop, goes through all of the faces and applies
-     * transformation data */
-    for(int i = 0; i < num_faces; i++) {
-		// DEBUG if(i != 4) continue;
-
-        face_t mesh_face = mesh.faces[i];
-        mesh_face.color = 0xFFFFFFFF; // draw white mesh
-
-        vec3_t face_verts[3]; 
-        // look inside the mesh.faces[i].(a/b/c)
-        // find index corresponding to a
-        // grab data with the index from mesh_verts
-        // -1 compensates for index  offset
-        face_verts[0] = mesh.verts[mesh_face.a];
-        face_verts[1] = mesh.verts[mesh_face.b];
-        face_verts[2] = mesh.verts[mesh_face.c];
-        
-        // prepare a temp triangle_t for passing into g_renderQueue[]
-        triangle_t projected_triangle;
-
-        // add texture data from mesh_face to the temp variable before future transformations
-        projected_triangle.texcoords[0].u = mesh_face.a_uv.u; 
-        projected_triangle.texcoords[0].v = mesh_face.a_uv.v;
-        projected_triangle.texcoords[1].u = mesh_face.b_uv.u;
-        projected_triangle.texcoords[1].v = mesh_face.b_uv.v;
-        projected_triangle.texcoords[2].u = mesh_face.c_uv.u;
-        projected_triangle.texcoords[2].v = mesh_face.c_uv.v;  
-         
-
-        // prepare an array to store tranformations for intermediate culling check
-        // changed to vec4_t
-        vec4_t transformed_vertices[3];
-
-        // Transformation step, note the type conversions (scale > rotate > translate)
+        // perform vertex transformations
+        vec4_t transformed[3];
         for(int j = 0; j < 3; j++) {
-            // create a temp vector to apply transforms
-            vec4_t temp = vec4_from_vec3(&face_verts[j]);
+            vec4_t currentVertex = vec4_from_vec3(&faceVertices[j]);
+            g_worldMatrix = mat4_make_identity(); 
+            g_worldMatrix = mat4_mult_mat4(&scaleMatrix, &g_worldMatrix);
+            g_worldMatrix = mat4_mult_mat4(&rotationMatrix_z, &g_worldMatrix);
+            g_worldMatrix = mat4_mult_mat4(&rotationMatrix_y, &g_worldMatrix); 
+            g_worldMatrix = mat4_mult_mat4(&rotationMatrix_x, &g_worldMatrix);
+            g_worldMatrix = mat4_mult_mat4(&translationMatrix, &g_worldMatrix);
             
-            //scale & translate
-            temp = mat4_mult_vec4(&world_matrix, &temp);
-            // apply the view matrix to the vertices to move into camera space  
-            temp = mat4_mult_vec4(&g_viewMatrix, &temp);
-            // store tranformed result into array 
-            transformed_vertices[j] = temp; 
+            currentVertex = mat4_mult_vec4(&g_worldMatrix, &currentVertex);
+            currentVertex = mat4_mult_vec4(&g_viewMatrix, &currentVertex); // translate to Camera space 
+            transformed[j] = currentVertex; 
+        }  
+        
+        // Compute normal from resulting transformed face vertices 
+        // Indexing: A - 0 ,  B - 1, C - 2
+        vec3_t A, B, C, AB, AC, normal;
+        A = vec3_from_vec4(&transformed[0]);
+        B = vec3_from_vec4(&transformed[1]);
+        C = vec3_from_vec4(&transformed[2]);
+        AB = vec3_sub(&B, &A);
+        AC = vec3_sub(&C, &A);
+        vec3_norm(&AB);
+        vec3_norm(&AC); 
+        normal = vec3_cross(&AB, &AC);
+        vec3_norm(&normal);
+        
+        // Perform Backface culling if needed
+        if(g_cullMethod == CULL_BACKFACE) {
+           vec3_t origin = { 0, 0, 0 };
+           vec3_t cameraRay = vec3_sub(&origin, &A);
+           float alignmentFactor = vec3_dot(&normal, &cameraRay);
+           if(alignmentFactor < 0) continue;  
         }
 
-        /* Precaclculate data for Culling & Shading */
-
-            //Grabing vertices (temp solution is to convert back to vec3_t)
-            vec3_t a = vec3_from_vec4(&transformed_vertices[0]); /*   A  */
-            vec3_t b = vec3_from_vec4(&transformed_vertices[1]); /*  / \  */
-            vec3_t c = vec3_from_vec4(&transformed_vertices[2]); /* C---B */
-        
-            // calculate (CA & BA) lengths
-            vec3_t c_a = vec3_sub(&c, &a);
-            vec3_t b_a = vec3_sub(&b, &a);
-            vec3_norm(&c_a);
-            vec3_norm(&b_a); 
-        
-            // Find their normal via cross product 
-            vec3_t normal = vec3_cross(&b_a, &c_a);
-            // normalize it since only direction is relevant
-            vec3_norm(&normal);
-
-
-       /* Rendering checks start here  */     
-            
-            // Culling  (clock wise orientation) 
-            if(g_cullMethod == CULL_BACKFACE) {
-                // Find camera ray by substracting origin from A
-                vec3_t origin = {0, 0, 0}; // Not sure about this one
-                vec3_t camera_ray = vec3_sub(&origin, &a);
-
-                // check alignment between the normal and camera via dot prod
-                float alignment_factor = vec3_dot(&normal, &camera_ray); 
-        
-                // was <= 0, if not aligned with camera (looking away) skip it
-                if(alignment_factor < 0) continue;
-            }
-
-            // Lighting
-            if(g_lightMethod == LIGHT_BASIC) {
-                // Find light position relative to the face
+        // Lighting
+        if(g_lightMethod == LIGHT_BASIC) {
                 float ray_alignment = -vec3_dot(&normal, &global_light.direction); 
-                mesh_face.color = light_apply_intensity(mesh_face.color, ray_alignment); 
+                currentFace.color = light_apply_intensity(currentFace.color, ray_alignment); 
+        }
+
+        // Perform clipping, same vertex orientation as in normal calculation
+        polygon_t polygon; 
+        vec3_t pA, pB, pC;
+        pA = vec3_from_vec4(&transformed[0]);
+        pB = vec3_from_vec4(&transformed[1]); 
+        pC = vec3_from_vec4(&transformed[2]);
+        polygon = createPolygon(&pA, &pB, &pC);
+        clipPolygon(&polygon);
+        
+        // Break the clipped part into individual triangles
+        triangle_t clippedTriangles[CLIP_TRIANGLE_LIMIT];
+        int clippedCount;
+        
+        clippedCount = 0;
+        slicePolygon(&polygon, clippedTriangles, &clippedCount);  
+        // Loop through all resulting triangles
+        for(int t = 0; t < clippedCount; t++) {
+            triangle_t currentTriangle = clippedTriangles[t]; 
+            vec4_t projectedVertices[3];
+            for(int j = 0; j < 3; j++) {
+                projectedVertices[j] = mat4_mult_vec4_project(&proj_matrix, &currentTriangle.points[j]);
+                // Flip verticaly respective to current coord system
+                projectedVertices[j].y *= -1; // check texture allignment
+                // Scale and translate into view
+                projectedVertices[j].x *= (win_w / 2.0); 
+                projectedVertices[j].y *= (win_h / 2.0); 
+                projectedVertices[j].x += (win_w / 2.0);
+                projectedVertices[j].y += (win_h / 2.0);  
+            } 
+            // Package the resulting data into triangle_t for rendering
+            triangle_t result; 
+            for(int i = 0; i < 3; i++) {
+                result.points[i].x = projectedVertices[i].x;
+                result.points[i].y = projectedVertices[i].y;
+                result.points[i].z = projectedVertices[i].z;
+                result.points[i].w = projectedVertices[i].w; 
             }
-    
-            // Clipping step
-            // Create a temp polygon for clipping (from the original triangle)
-            // The data for clipping is taken from  transformed_vertices[n],
-            // but since its type is vec4_t instead of converting again,
-            // the vec3_t versions are used from lines: 359-361  
-            polygon_t polygon = createPolygon(&a, &b, &c);
-            clipPolygon(&polygon); // pass the ref to the clipping sys  
+            result.texcoords[0].u = currentFace.a_uv.u; 
+            result.texcoords[0].v = currentFace.a_uv.v;
+            result.texcoords[1].u = currentFace.b_uv.u;
+            result.texcoords[1].v = currentFace.b_uv.v;
+            result.texcoords[2].u = currentFace.c_uv.u;
+            result.texcoords[2].v = currentFace.c_uv.v;
+            result.color = currentFace.color;
             
-            // stores results  of the clipping operation 
-            triangle_t clippedTriangles[CLIP_TRIANGLE_LIMIT];
-            
-            int triangleCount = getTriangleCount(&polygon); // get number of slices 
-            slicePolygon(&polygon, clippedTriangles, &triangleCount); // slice and write into clippedTriangles
-            
-            // DEBUG: triangleCount overwritten by slicePolygon call
-            
-            // loop assembled triangles after clipping
-            for(int t = 0; t < triangleCount; t++) {
-				triangle_t* clippedTriangle = &clippedTriangles[t]; 
-
-				// After the poly is clipped, it needs to be broken into new triangles
-				// in case the number of vertices goes up
-
-			/* Rest of the update  */    
-		
-				// Projection step
-				for(int j = 0; j < 3; j++) {
-				
-				   vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &clippedTriangle->points[j]);
-					
-					//vec4_t projected = mat4_mult_vec4_project(&proj_matrix, &clippedTriangle->points[j]);             
-				
-					// Note: on widescreen x is scalled height and y by width
-					// This is the opposite of what was shown in the materials.
-					// scale projection into view
-					projected.x *= (win_h / 2.0); // -1 here mirrored my textures -_-
-					projected.y *= -(win_w / 2.0);
-					// Inverting y & x is the necessary
-					// (model values come bottom up, which is the opposite of screen space y) 
-					// the same is  true for x. This has to do with their orientation in .obj files 
-
-					// translate it to screen center
-					projected.x += (win_w / 2.0); 
-					projected.y += (win_h / 2.0);
-				
-
-					// Note to self:
-					// An explicit typecast is required here, since a compiler has no clue 
-					// about which type to use for this field
-					projected_triangle.points[j] = (vec4_t) {
-						.x = projected.x,
-						.y = projected.y,
-						// since updated struct field to vec4_t, we save z & w for correct rasterization later
-						.z = projected.z, 
-						.w = projected.w
-					}; 
-				}
-				// add color data to the triangle
-				projected_triangle.color = mesh_face.color;
-				
-			// save calculated data for rendering
-			if(g_triangleCounter < g_polyCount) {
-				g_renderQueue[g_triangleCounter] = projected_triangle;
-				g_triangleCounter++; 
-			}
-
-    }
-
-
-    // check rotations for overflow
-    if(mesh.rotation.x > R_LIMIT) mesh.rotation.x -= R_LIMIT;
-    if(mesh.rotation.x < R_LIMIT) mesh.rotation.x += R_LIMIT;
-    if(mesh.rotation.y > R_LIMIT) mesh.rotation.y -= R_LIMIT;
-    if(mesh.rotation.y < R_LIMIT) mesh.rotation.y += R_LIMIT; 
-    }  
+            // Send the result to the pipeline 
+            if(g_triangleCounter < MAX_TRIANGLES) {
+                g_renderQueue[g_triangleCounter++] = result; 
+            }
+        }
+    }   
 }
+
+
 
 void render(void) {
     draw_grid(10, COLOR_LIGHT_GRAY);          // grid spacing

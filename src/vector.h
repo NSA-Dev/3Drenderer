@@ -19,7 +19,7 @@ typedef struct {
     float w;
 } vec4_t;
 
-// 2D vector functions
+// vec2_t functions
 float vec2_mag(vec2_t* v);
 vec2_t vec2_add(vec2_t* a, vec2_t* b);
 vec2_t vec2_sub(vec2_t* a, vec2_t* b);
@@ -29,7 +29,7 @@ float vec2_dot(vec2_t* a, vec2_t* b);
 void vec2_norm(vec2_t* v);
 float vec2_cross(vec2_t* a, vec2_t* b); // fake cross product that returns a scalar 
 
-// Vector 3D functions
+// vec3_t functions
 float vec3_mag(vec3_t* v); 
 vec3_t vec3_add(vec3_t* a, vec3_t* b);
 vec3_t vec3_sub(vec3_t* a, vec3_t* b);
@@ -42,8 +42,10 @@ void vec3_rotate_x(vec3_t* v, float angle);
 void vec3_rotate_y(vec3_t* v, float angle);
 void vec3_rotate_z(vec3_t* v, float angle);
 
-// Vector conversion functions
+// vec*_t helper functions
 vec4_t vec4_from_vec3(vec3_t* v);
 vec3_t vec3_from_vec4(vec4_t* v);
-vec2_t vec2_from_vec4(vec4_t* v); 
+vec2_t vec2_from_vec4(vec4_t* v);
+vec3_t vec3_new(float x, float y, float z);
+vec3_t vec3_clone(vec3_t* targetVector);   
 #endif
