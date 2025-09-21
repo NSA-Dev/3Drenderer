@@ -25,7 +25,8 @@ typedef enum  {
 
 typedef enum {
 	LIGHT_NONE,
-	LIGHT_BASIC
+	LIGHT_BASIC,
+	LIGHT_TEST
 } LightMethod;
 
 /* global declarations*/
