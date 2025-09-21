@@ -44,10 +44,11 @@ void initFrustumPlanes(float fov_x, float fov_y, float z_near, float z_far) {
 }
 
 
-polygon_t createPolygon(vec3_t* v0, vec3_t* v1, vec3_t* v2) {
+polygon_t createPolygon(vec3_t* v0, vec3_t* v1, vec3_t* v2, tex2_t t0, tex2_t t1, tex2_t t2) {
     polygon_t res = {
         .verts = {*v0,*v1, *v2},
-        .num_verts = 3 
+        .num_verts = 3,
+        .texcoords = { t0, t1, t2} 
     };
     return res; 
 }
@@ -63,15 +64,17 @@ void clipPolygon(polygon_t* polygon) {
 void clipAgainstPlane(polygon_t* polygon, planeIndex_t i) {
     vec3_t* planePoint = &g_viewPlanes[i].point; 
     vec3_t* planeNormal = &g_viewPlanes[i].normal;
-    
-    // declare the array corresponding to the inside vert list
+    // Declare the array corresponding to the inside vert & tex list
     vec3_t insideVerts[VERT_LIMIT];
+    tex2_t insideTexcoords[VERT_LIMIT]; 
     int insideCounter = 0;
     vec3_t substracted; // temp variable
 
-    // set current & last vertex pointers (On init: current - first prev - last)
+    // Set current & last vertex & texcoord pointers (On init: current - first prev - last)
     vec3_t* currentVertex = &polygon->verts[0];
+    tex2_t* currentTexcoord = &polygon->texcoords[0]; 
     vec3_t* previousVertex = &polygon->verts[polygon->num_verts - 1]; 
+    tex2_t* previousTexcoord = &polygon->texcoords[polygon->num_verts - 1]; 
     
     // pre-calculate dot products for current & previous (last)
     // i.e. determine if curr & prev are inside the plane
@@ -84,37 +87,44 @@ void clipAgainstPlane(polygon_t* polygon, planeIndex_t i) {
         currentDot = vec3_dot(&substracted, planeNormal);
         // test for plane intersection between the current & prev vertices
         if(currentDot * previousDot < 0) {
-            // if result above is negative we need to determine the intersection
-            // and add it to  both lists
-            // Calculate intersection point
+            // Update vert and tex coords via linear interpolation, pass into the inside list
             float t = previousDot / (previousDot - currentDot);
-            vec3_t intersectionPoint = *currentVertex;
-            intersectionPoint = vec3_sub(&intersectionPoint, previousVertex);            
-            intersectionPoint = vec3_mul(&intersectionPoint, t);
-            intersectionPoint = vec3_add(&intersectionPoint, previousVertex); 
             
-            // insert the plane intersection point into the inside vertex list 
+            vec3_t intersectionPoint;
+            intersectionPoint.x = float_lerp(previousVertex->x, currentVertex->x, t);
+            intersectionPoint.y = float_lerp(previousVertex->y, currentVertex->y, t);
+            intersectionPoint.z = float_lerp(previousVertex->z, currentVertex->z, t); 
+            tex2_t interpolatedTexcoord = {
+                    .u = float_lerp(previousTexcoord->u, currentTexcoord->u, t),
+                    .v = float_lerp(previousTexcoord->v, currentTexcoord->v, t)  
+            };
+            
+            insideTexcoords[insideCounter] = interpolatedTexcoord;    
             insideVerts[insideCounter] = intersectionPoint;
             insideCounter++; 
-        }
-        
+        }        
         if(currentDot > 0) {
             insideVerts[insideCounter] = *currentVertex;
+            insideTexcoords[insideCounter] = *currentTexcoord; 
             insideCounter++;   
         }
         previousDot = currentDot; 
-        previousVertex = currentVertex; 
+        previousVertex = currentVertex;
+        previousTexcoord = currentTexcoord;  
         currentVertex++;
+        currentTexcoord++;
     } 
-
-
-    // make a polygon out of resulting insideVertices and write to the polygon pased as a ref
+    // Make a polygon out of resulting insideVertices and write to the polygon pased as a ref
     for(int i = 0; i < insideCounter; i++) {
         polygon->verts[i] = insideVerts[i];
+        polygon->texcoords[i] = insideTexcoords[i]; 
     } 
     polygon->num_verts = insideCounter; 
 }
 
+float float_lerp(float a, float b, float factor) {
+    return a + factor * (b - a); 
+}
 int getTriangleCount(polygon_t* polygon) {
     return (int) polygon->num_verts - 2; 
 }
@@ -129,9 +139,11 @@ void slicePolygon(polygon_t* polygon, triangle_t storage[],  int* slicesCounter)
         
         storage[i].points[0] = vec4_from_vec3(&polygon->verts[index0]);
         storage[i].points[1] = vec4_from_vec3(&polygon->verts[index1]); 
-        storage[i].points[2] = vec4_from_vec3(&polygon->verts[index2]);  
+        storage[i].points[2] = vec4_from_vec3(&polygon->verts[index2]);
+        storage[i].texcoords[0] = polygon->texcoords[index0];
+        storage[i].texcoords[1] = polygon->texcoords[index1];
+        storage[i].texcoords[2] = polygon->texcoords[index2];   
     }
-    // side effect
     *slicesCounter = polygon->num_verts - 2;
 }
 

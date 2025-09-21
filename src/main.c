@@ -28,7 +28,7 @@ int previous_frame_time = 0; // ms
 float g_deltaTime = 0; 
 mat4_t proj_matrix;
 char modelPath[] = "./assets/crab.obj"; 
-char texturePath[] = "./assets/cube.png"; 
+char texturePath[] = "./assets/crab.png"; 
 
  
 bool setup(void);
@@ -102,7 +102,6 @@ bool setup(void) {
 		fprintf(stderr, "Error: not enough memory to process the model (polycount is too high).\n");
 		return false; 
 	}
-	
     // Init view settings 
     float aspect_y = (float)win_h / (float)win_w;
     float aspect_x = (float)win_w / (float)win_h;
@@ -335,7 +334,8 @@ void update(void) {
         pA = vec3_from_vec4(&transformed[0]);
         pB = vec3_from_vec4(&transformed[1]); 
         pC = vec3_from_vec4(&transformed[2]);
-        polygon = createPolygon(&pA, &pB, &pC);
+        // FIX ME: pass mesh_face.*_uv
+        polygon = createPolygon(&pA, &pB, &pC, currentFace.a_uv, currentFace.b_uv, currentFace.c_uv); 
         clipPolygon(&polygon);
         
         // Break the clipped part into individual triangles
@@ -366,12 +366,12 @@ void update(void) {
                 result.points[i].z = projectedVertices[i].z;
                 result.points[i].w = projectedVertices[i].w; 
             }
-            result.texcoords[0].u = currentFace.a_uv.u; 
-            result.texcoords[0].v = currentFace.a_uv.v;
-            result.texcoords[1].u = currentFace.b_uv.u;
-            result.texcoords[1].v = currentFace.b_uv.v;
-            result.texcoords[2].u = currentFace.c_uv.u;
-            result.texcoords[2].v = currentFace.c_uv.v;
+            result.texcoords[0].u = clippedTriangles[t].texcoords[0].u;
+            result.texcoords[0].v = clippedTriangles[t].texcoords[0].v;
+            result.texcoords[1].u = clippedTriangles[t].texcoords[1].u;
+            result.texcoords[1].v = clippedTriangles[t].texcoords[1].v;
+            result.texcoords[2].u = clippedTriangles[t].texcoords[2].u;
+            result.texcoords[2].v = clippedTriangles[t].texcoords[2].v;  
             result.color = currentFace.color;
             
             // Send the result to the pipeline 
@@ -419,14 +419,13 @@ void render(void) {
                 );
         } 
     } 
-
-
-
     render_framebuffer();
     clear_framebuffer(COLOR_BLACK);
     clear_Zbuffer(); 
     SDL_RenderPresent(renderer); 
 }
+
+
 void free_resources(void) {
     if(framebuffer != NULL) free(framebuffer);
     if(g_Zbuffer != NULL) free(g_Zbuffer);
