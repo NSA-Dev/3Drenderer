@@ -38,7 +38,7 @@ void render(void);
 void free_resources(void);
 
 int main(void) {
-    is_running = init_win();
+    is_running = init_window();
     
     if(!setup()) {
         fprintf(stderr, "Setup failed. Shutting down.\n");
@@ -59,31 +59,6 @@ int main(void) {
 
 
 bool setup(void) {
-    // Allocate framebuffer
-    framebuffer = (uint32_t*)malloc(sizeof(uint32_t) * win_w * win_h);
-    if(!framebuffer) {
-        fprintf(stderr, "Failed to allocate framebuffer memory.\n");
-        return false;  
-    }
-    // Allocate z-buffer
-    g_Zbuffer = (float*)malloc(sizeof(float) * win_w * win_h); 
-    if(!g_Zbuffer) {
-		fprintf(stderr, "Failed to allocate z-buffer memory.\n");
-		return false; 
-	}
-   // framebuffer texture
-   framebuffer_texture = SDL_CreateTexture(
-        renderer,           // renderer responsible
-        SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_STREAMING,
-        win_w,
-        win_h
-   );
-   if(!framebuffer_texture) { 
-        fprintf(stderr, "Failed to allocate SDL_Texture.\n");
-        return false;
-   }
-
    // if unable to load custom model, load default cube and print msg
     if(!load_mesh_data(modelPath)) {
         printf("Error: unable to read specified .obj file.\n");
@@ -385,7 +360,10 @@ void update(void) {
 
 
 void render(void) {
-    draw_grid(10, COLOR_LIGHT_GRAY);          // grid spacing
+    clear_framebuffer(COLOR_BLACK);
+    clear_Zbuffer();
+
+    draw_grid(GRID_SPACING, COLOR_LIGHT_GRAY);         
     
     // draw all of the triangles residing in g_renderQueue based on the rendering mode selected  
     for(int i = 0; i < g_triangleCounter; i++) {
@@ -419,10 +397,7 @@ void render(void) {
                 );
         } 
     } 
-    render_framebuffer();
-    clear_framebuffer(COLOR_BLACK);
-    clear_Zbuffer(); 
-    SDL_RenderPresent(renderer); 
+    render_framebuffer(); 
 }
 
 

@@ -1,18 +1,18 @@
 #include "display.h"
 
 /* global init */
-RenderingMode g_renderingMode;
-CullMethod g_cullMethod;
-LightMethod g_lightMethod; 
-SDL_Window* window = NULL;
-SDL_Renderer* renderer = NULL;
-uint32_t* framebuffer = NULL;
-float* g_Zbuffer = NULL; 
-SDL_Texture* framebuffer_texture = NULL;
+ RenderingMode g_renderingMode;
+ CullMethod g_cullMethod;
+ LightMethod g_lightMethod; 
+ SDL_Window* window = NULL;
+ SDL_Renderer* renderer = NULL;
+ uint32_t* framebuffer = NULL;
+ float* g_Zbuffer = NULL; 
+ SDL_Texture* framebuffer_texture = NULL;
 int win_w = 800;    // fallback value
 int win_h = 600;    // fallback value
 
-bool init_win(void) {
+bool init_window(void) {
 
     /* Steps to create renderer window in SDL 
      * 1. initalize SDL (SDL_Init)
@@ -58,7 +58,33 @@ bool init_win(void) {
     }   
     
     /* True fullscreen mode */
-   // SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN); 
+   // SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+       // Allocate framebuffer
+    framebuffer = (uint32_t*)malloc(sizeof(uint32_t) * win_w * win_h);
+    if(!framebuffer) {
+        fprintf(stderr, "Failed to allocate framebuffer memory.\n");
+        return false;  
+    }
+    // Allocate z-buffer
+    g_Zbuffer = (float*)malloc(sizeof(float) * win_w * win_h); 
+    if(!g_Zbuffer) {
+		fprintf(stderr, "Failed to allocate z-buffer memory.\n");
+		return false; 
+	}
+   // framebuffer texture
+   framebuffer_texture = SDL_CreateTexture(
+        renderer,           // renderer responsible
+        SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_STREAMING,
+        win_w,
+        win_h
+   );
+   
+   if(!framebuffer_texture) { 
+        fprintf(stderr, "Failed to allocate SDL_Texture.\n");
+        return false;
+   }
+
     return true; 
 }
 
@@ -72,9 +98,10 @@ void draw_grid(int spacing, uint32_t color) {
     }
 }
 void draw_pixel(int x, int y, uint32_t color) {
-    if(x >= 0 && x < win_w && y >= 0 && y < win_h) {
-    framebuffer[(win_w*y)+x] = color;
+    if(x < 0 || x >= win_w || y < 0 || y >= win_h) {
+        return;
     } 
+    framebuffer[(win_w*y)+x] = color;
 }
 
 void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color) {
@@ -130,6 +157,7 @@ void render_framebuffer(void) {
     );
 
     SDL_RenderCopy(renderer, framebuffer_texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
 }
 
 void clear_framebuffer(uint32_t color) {

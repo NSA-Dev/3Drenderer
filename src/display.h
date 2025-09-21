@@ -8,6 +8,7 @@
 #define FPS 60
 #define FTT (1000 / FPS)
 #define DEFAULT_CAM_DEPTH 5
+#define GRID_SPACING 10
 
 typedef enum {
 	RENDER_WIRE,
@@ -41,7 +42,7 @@ extern int win_w;    // fallback value
 extern int win_h;    // fallback value
 
 /* signatures */
-bool init_win(void);
+bool init_window(void);
 void draw_grid(int spacing, uint32_t color);
 void draw_pixel(int x, int y, uint32_t color);
 void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color);
