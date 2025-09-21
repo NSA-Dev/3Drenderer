@@ -25,21 +25,9 @@ typedef enum  {
 
 typedef enum {
 	LIGHT_NONE,
-	LIGHT_BASIC,
-	LIGHT_TEST
+	LIGHT_BASIC
 } LightMethod;
 
-/* global declarations*/
-extern RenderingMode g_renderingMode;
-extern CullMethod g_cullMethod;
-extern LightMethod g_lightMethod; 
-extern SDL_Window* window;
-extern SDL_Renderer* renderer;
-extern uint32_t* framebuffer;
-extern float* g_Zbuffer; 
-extern SDL_Texture* framebuffer_texture;
-extern int win_w;    // fallback value
-extern int win_h;    // fallback value
 
 /* signatures */
 bool init_win(void);
