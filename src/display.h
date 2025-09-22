@@ -4,49 +4,32 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 
-#define MAX_TRIANGLES 10000  
-#define FPS 60
-#define FTT (1000 / FPS)
-#define DEFAULT_CAM_DEPTH 5
-
-typedef enum {
-	RENDER_WIRE,
-	RENDER_WIRE_VERTEX,
-	RENDER_SOLID,
-	RENDER_SOLID_WIRE,
-	RENDER_TEXTURED,
-	RENDER_TEXTURED_WIRE
-} RenderingMode;
-
-typedef enum  {
-	CULL_NONE,
-	CULL_BACKFACE
-} CullMethod;
-
-typedef enum {
-	LIGHT_NONE,
-	LIGHT_BASIC
-} LightMethod;
-
 typedef struct {
-	RenderingMode renderingMode;
-	CullMethod cullMethod;
-	LightMethod LightMethod;
 	int	windowWidth;
 	int windowHeight;
-} DisplaySettings;
+	SDL_Window* windowInstance;
+	SDL_Renderer* rendererInstance;
+	uint32_t* framebuffer;
+	float* zBuffer;
+	SDL_Texture* framebufferTexture;
+	float aspectRatio_Y;
+	float aspectRatio_X; 
+} Display;
 
 
 /* signatures */
-bool init_win(void);
-bool setup(void); 
-void draw_grid(int spacing, uint32_t color);
-void draw_pixel(int x, int y, uint32_t color);
-void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color);
-void draw_rect(int x, int y, int w, int h, uint32_t color);
-void draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, uint32_t color); // uses Bresenheim's
-void render_framebuffer(void);
-void clear_framebuffer(uint32_t color);
-void clear_Zbuffer(void);
-void destroy_window(void);
+bool disp_initWin(void); 
+void disp_drawGrid(int spacing, uint32_t color);
+void disp_drawPixel(int x, int y, uint32_t color);
+void disp_drawBresLine(int x1, int y1, int x2, int y2, uint32_t color);
+void disp_drawRect(int x, int y, int w, int h, uint32_t color);
+void disp_drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, uint32_t color); // uses Bresenheim's
+void disp_renderFramebuffer(void);
+void disp_clearFramebuffer(uint32_t color);
+void disp_clearZbuffer(void);
+void disp_destroyWindow(void);
+int disp_getWindowWidth(void);
+int disp_getWindowHeight(void);
+float disp_getAspectY(void);
+float disp_getAspectX(void); 
 #endif

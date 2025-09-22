@@ -5,10 +5,7 @@
 
 
 static Display display; 
-static RenderingMode display_renderingMode;
-static CullMethod display_cullMethod;
-static LightMethod display_lightMethod; 
-bool init_win(void) {
+bool disp_initWin(void) {
 
     /* Steps to create renderer window in SDL 
      * 1. initalize SDL (SDL_Init)
@@ -21,15 +18,18 @@ bool init_win(void) {
         fprintf(stderr, "Error intitalizing SDL.\n");
         return false; 
     }
-
     /* Query display's video mode from main(0) display */
     SDL_DisplayMode display_mode;
     if(!SDL_GetCurrentDisplayMode(0, &display_mode)){
         display.windowWidth = DEFAULT_WINDOW_W;
-        display.windowHeight = DEFAULT_WINDOW_H; 
+        display.windowHeight = DEFAULT_WINDOW_H;
+        display.aspectRatio_Y = (float) DEFAULT_WINDOW_H / DEFAULT_WINDOW_W;
+        display.aspectRatio_X =(float) DEFAULT_WINDOW_W / DEFAULT_WINDOW_H; 
     } else {
         display.windowWidth = display_mode.w;
         display.windowHeight = display_mode.h;
+        display.aspectRatio_Y = (float) display_mode.h / display_mode.w;
+        display.aspectRatio_X =(float) display_mode.w / display_mode.h;
     }
     /* Handle window creation */
     display.windowInstance = SDL_CreateWindow(
@@ -85,21 +85,21 @@ bool init_win(void) {
     return true; 
 }
 
-void draw_grid(int spacing, uint32_t color) {
+void disp_drawGrid(int spacing, uint32_t color) {
     // draws a dot grid
     for(int row = 0; row <  display.windowHeight; row += spacing) {
         for(int col = 0; col < display.windowWidth; col += spacing) {
-           draw_pixel(col, row, color); 
+           disp_drawPixel(col, row, color); 
         }
     }
 }
-void draw_pixel(int x, int y, uint32_t color) {
+void disp_drawPixel(int x, int y, uint32_t color) {
     if(x >= 0 && x <  display.windowWidth && y >= 0 && y <  display.windowHeight) {
     display.framebuffer[(display.windowWidth*y)+x] = color;
     } 
 }
 
-void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color) {
+void disp_drawBresLine(int x1, int y1, int x2, int y2, uint32_t color) {
     int dx, dy;
     int step_x, step_y;
     int error;
@@ -113,7 +113,7 @@ void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color) {
     step_y = (y1 < y2) ? 1 : -1;
    
     while(x1 != x2 || y1 != y2) {
-        draw_pixel(x1, y1, color);
+        disp_drawPixel(x1, y1, color);
         int e2 = 2 * error; // used for balancing
         if(e2 > -dy) {
             error -= dy;
@@ -125,25 +125,25 @@ void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color) {
         }
     } 
  
-    draw_pixel(x1, y1, color); 
+    disp_drawPixel(x1, y1, color); 
 }
 
 
-void draw_rect(int x, int y, int w, int h, uint32_t color) {
+void disp_drawRect(int x, int y, int w, int h, uint32_t color) {
     for(int row = y; row < y + h; row++) {
         for(int col = x; col < x + w; col++) {
-           draw_pixel(col, row, color);  
+           disp_drawPixel(col, row, color);  
         }
     }
 }
 
-void draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, uint32_t color) {
-    draw_bresLine(x1, y1, x2, y2, color);
-    draw_bresLine(x2, y2, x3, y3, color);
-    draw_bresLine(x3, y3, x1, y1, color);
+void disp_drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, uint32_t color) {
+    disp_drawBresLine(x1, y1, x2, y2, color);
+    disp_drawBresLine(x2, y2, x3, y3, color);
+    disp_drawBresLine(x3, y3, x1, y1, color);
 } 
 
-void render_framebuffer(void) {
+void disp_renderFramebuffer(void) {
     SDL_UpdateTexture(
         display.framebufferTexture,
         NULL,
@@ -154,29 +154,37 @@ void render_framebuffer(void) {
     SDL_RenderCopy(display.rendererInstance, display.framebufferTexture, NULL, NULL);
 }
 
-void clear_framebuffer(uint32_t color) {
+void disp_clearFramebuffer(uint32_t color) {
     for(int i = 0; i < (display.windowWidth * display.windowHeight); i++) {
         display.framebuffer[i] = color; 
     } 
 }
 
-void clear_Zbuffer(void) {
+void disp_clearZbuffer(void) {
 	for(int i = 0; i < (display.windowWidth * display.windowHeight); i++) {
 		display.zBuffer[i] = 1.0; // Z-buffer starts with 1.0 in left handed coord sys by convention   
 	}
 
 }
 
-void destroy_window(void) { 
+void disp_destroyWindow(void) { 
     SDL_DestroyRenderer(display.rendererInstance);
     SDL_DestroyWindow(display.windowInstance);
     SDL_Quit(); 
 }
 
-
-int getWindowWidth(void) {
+int disp_getWindowWidth(void) {
     return display.windowWidth;
 }
-int getWindowHeight(void) {
+
+int disp_getWindowHeight(void) {
     return display.windowHeight;
 }
+
+float disp_getAspectY(void) {
+    return display.aspectRatio_Y;
+}
+
+float disp_getAspectX(void) {
+    return display.aspectRatio_X; 
+}  

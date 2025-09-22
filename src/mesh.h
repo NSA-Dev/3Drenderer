@@ -24,5 +24,8 @@ typedef struct {
 // Functions
 void load_cube_mesh(void);
 bool load_mesh_data(char* fname); // parses provided .obj file, copie data into mesh_t array 
-mesh_t* getMesh(void); 
+mesh_t* getMesh(void);
+void mesh_setRotationX(float f);
+void mesh_setRotationY(float f);
+void mesh_setRotationZ(float f); 
 #endif

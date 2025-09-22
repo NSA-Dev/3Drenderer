@@ -14,7 +14,7 @@ static mesh_t mesh = {
 
 };
 
-vec3_t cube_verts[N_CUBE_VERTS] = {
+static vec3_t cube_verts[N_CUBE_VERTS] = {
     {.x = -1, .y = -1, .z = -1}, // 1
     {.x = -1, .y =  1, .z = -1}, // 2
     {.x =  1, .y =  1, .z = -1}, // 3
@@ -117,4 +117,15 @@ bool load_mesh_data(char* fname) {
 
 mesh_t* getMesh(void) {
     return &mesh; 
+}
+
+
+void mesh_setRotationX(float f) {
+    mesh.rotation.x += f;
+}
+void mesh_setRotationY(float f) {
+    mesh.rotation.y += f;
+}
+void mesh_setRotationZ(float f) {
+    mesh.rotation.z += f; 
 }

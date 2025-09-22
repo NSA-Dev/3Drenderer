@@ -4,7 +4,10 @@
 #include "matrix.h"
 #include "triangle.h"
 
-
+#define MAX_TRIANGLES 10000  
+#define FPS 60
+#define FTT (1000 / FPS)
+#define DEFAULT_CAM_DEPTH 5
 #define MESH_ROTATION_FACTOR 1.2
 #define MESH_SPIN_FACTOR 0.6
 #define MESH_SCALE_FACTOR 1.2
@@ -45,9 +48,15 @@ typedef struct {
 	mat4_t projectionMatrix;
 	RenderingMode renderingMode;
 	CullMethod cullMethod;
-	LightMethod LightMethod; 
+	LightMethod LightMethod;
+	ControlMode controlMode;
+	bool isRunning;  
 } Renderer; 
- 
+// STOPPED HERE
+void r_setViewMatrix(mat4_t* m);
+void r_setWorldMatrix(mat4_t* m);
+void r_set 
+void r_exit(void);
 
 
 #endif

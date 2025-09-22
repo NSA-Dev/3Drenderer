@@ -16,7 +16,7 @@
 #include "renderer.h"
 #include "clipping.h"
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
-#define  PI_CONST 3.14159
+#define  PI_CONST 3.14159265
 
 mat4_t g_viewMatrix;
 mat4_t g_worldMatrix; 
@@ -35,20 +35,18 @@ void render(void);
 void free_resources(void);
 
 int main(void) {
-    bool is_running = false;
-    Renderer defaultRenderer;   
-    
-    if(!init_win()){
+    Renderer defaultRenderer;
+    defaultRenderer.isRunning = false;   
+    if(!disp_initWin()){
         fprintf(stderr, "Unable to initalize window. Shutting down.\n");
         return 1;
     }
-    if(!setup()) {
+    if(!setup(&defaultRenderer)) {
         fprintf(stderr, "Renderer setup failed. Shutting down.\n");
         return 1;
     };
-
-    is_running = true; 
-    while(is_running) {
+  
+    while(defaultRenderer.isRunning) {
        process_input();
        update();
        render();  
@@ -69,8 +67,13 @@ bool setup(Renderer* renderer) {
         printf("Error: unable to read specified .obj file.\n");
         printf("Loading default model...\n");  
         load_cube_mesh();
-        load_defaultTexture();  
     }   
+    // .png Texture loading 
+    if(!load_png_textureData(texturePath)) {
+			printf("Error: unable to open provided texture.\n Loading default..."); 
+			load_defaultTexture();  
+            //mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
+	}   
 
     // Allocate the draw list for all polys << Can eat all of the heap
     renderer->polyCount = array_length(getMesh()->faces);
@@ -79,28 +82,21 @@ bool setup(Renderer* renderer) {
 		fprintf(stderr, "Error: not enough memory to process the model (The polycount is too high).\n");
 		return false; 
 	}
-    // Init view settings 
-    float aspect_y = (float)win_h / (float)win_w;
-    float aspect_x = (float)win_w / (float)win_h;
-    float fov_y = 3.141592 / 2.0; // the same as 180/3, or 60deg
-    float fov_x = atan(tan(fov_y / 2) * aspect_x) * 2;
+
+    float fov_y = 3.141592 / disp_getAspectY() ; // DEBUG 
+    float fov_x = atan(tan(fov_y / 2) * disp_getAspectX()) * 2;
     float z_near = 1.0;
     float z_far = 20.0;
-    proj_matrix = mat4_make_perspective(fov_y, aspect_y, z_near, z_far);
+    renderer->projectionMatrix = mat4_make_perspective(fov_y, disp_getAspectY(), z_near, z_far);
     
     // Initialize frustum planes with a point and a normal
     initFrustumPlanes(fov_x, fov_y, z_near, z_far);  
-    
-    // .png Texture loading 
-    if(!load_png_textureData(texturePath)) {
-			printf("Error: unable to open provided texture.\n Loading default..."); 
-			mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
-	}
-     
-    g_renderingMode = RENDER_WIRE_VERTEX;
-    g_cullMethod = CULL_BACKFACE;  
-    g_lightMethod = LIGHT_NONE; 
-    g_controlMode = SPIN; 
+
+    renderer->renderingMode = RENDER_WIRE_VERTEX;
+    renderer->cullMethod = CULL_BACKFACE;
+    renderer->LightMethod = LIGHT_NONE;
+    renderer->controlMode = SPIN;
+    renderer->isRunning = true;  
     return true; 
 }
 
