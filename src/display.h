@@ -28,9 +28,18 @@ typedef enum {
 	LIGHT_BASIC
 } LightMethod;
 
+typedef struct {
+	RenderingMode renderingMode;
+	CullMethod cullMethod;
+	LightMethod LightMethod;
+	int	windowWidth;
+	int windowHeight;
+} DisplaySettings;
+
 
 /* signatures */
 bool init_win(void);
+bool setup(void); 
 void draw_grid(int spacing, uint32_t color);
 void draw_pixel(int x, int y, uint32_t color);
 void draw_bresLine(int x1, int y1, int x2, int y2, uint32_t color);

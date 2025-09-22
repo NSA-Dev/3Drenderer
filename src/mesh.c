@@ -5,7 +5,7 @@
 #include "array.h"
 #include "colors.h"
 
-mesh_t mesh = {
+static mesh_t mesh = {
     .verts = NULL,
     .faces = NULL,
     .rotation = {0, 0, 0},
@@ -113,4 +113,8 @@ bool load_mesh_data(char* fname) {
     }
     array_free(uvCoords); 
     return true; 
+}
+
+mesh_t* getMesh(void) {
+    return &mesh; 
 }

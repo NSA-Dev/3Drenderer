@@ -1,17 +1,13 @@
 #include "display.h"
 
-/* global init */
-RenderingMode g_renderingMode;
-CullMethod g_cullMethod;
-LightMethod g_lightMethod; 
-SDL_Window* window = NULL;
-SDL_Renderer* renderer = NULL;
-uint32_t* framebuffer = NULL;
-float* g_Zbuffer = NULL; 
-SDL_Texture* framebuffer_texture = NULL;
-int win_w = 800;    // fallback value
-int win_h = 600;    // fallback value
+#define DEFAULT_WINDOW_W 800
+#define DEFAULT_WINDOW_H 600
 
+
+static Display display; 
+static RenderingMode display_renderingMode;
+static CullMethod display_cullMethod;
+static LightMethod display_lightMethod; 
 bool init_win(void) {
 
     /* Steps to create renderer window in SDL 
@@ -28,52 +24,78 @@ bool init_win(void) {
 
     /* Query display's video mode from main(0) display */
     SDL_DisplayMode display_mode;
-    SDL_GetCurrentDisplayMode(0, &display_mode);
-    win_w = display_mode.w;
-    win_h = display_mode.h;
-
+    if(!SDL_GetCurrentDisplayMode(0, &display_mode)){
+        display.windowWidth = DEFAULT_WINDOW_W;
+        display.windowHeight = DEFAULT_WINDOW_H; 
+    } else {
+        display.windowWidth = display_mode.w;
+        display.windowHeight = display_mode.h;
+    }
     /* Handle window creation */
-    window = SDL_CreateWindow(
+    display.windowInstance = SDL_CreateWindow(
             NULL,                   // winTitle
             SDL_WINDOWPOS_CENTERED, // pos X
             SDL_WINDOWPOS_CENTERED, // pos Y
-            win_w,                  // width
-            win_h,                  // height
+            display.windowWidth,                  // width
+            display.windowHeight,                  // height
             SDL_WINDOW_BORDERLESS   // winMode                    
     );
     
-    if(!window) {
+    if(!display.windowInstance) {
         fprintf(stderr, "Error creating SDL window.\n");
         return false; 
     }   
     /* Handle renderer creation */
-    renderer = SDL_CreateRenderer(
-            window,                 // winInstance
+    display.rendererInstance = SDL_CreateRenderer(
+            display.windowInstance,                 
             -1,                     // the index of a display device -1 default
             0                       // extra rend flags 
     );
-    if(!renderer) {
+    if(!display.rendererInstance) {
         fprintf(stderr, "Error creating SDL renderer.\n");
         return false;
-    }   
+    } 
+    // Allocate framebuffer
+    display.framebuffer = (uint32_t*)malloc(sizeof(uint32_t) * display.windowWidth 
+                                                             * display.windowHeight);
+    if(!display.framebuffer) {
+        fprintf(stderr, "Failed to allocate framebuffer memory.\n");
+        return false;  
+    }
+    // Allocate z-buffer
+    display.zBuffer = (float*)malloc(sizeof(float) * display.windowWidth 
+                                                   * display.windowHeight); 
+    if(!display.zBuffer) {
+		fprintf(stderr, "Failed to allocate z-buffer memory.\n");
+		return false; 
+	}
+   // framebuffer texture
+   display.framebufferTexture = SDL_CreateTexture(
+        display.rendererInstance,           // renderer responsible
+        SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_STREAMING,
+        display.windowWidth,
+        display.windowHeight
+   );
+   if(!display.framebufferTexture) { 
+        fprintf(stderr, "Failed to allocate SDL_Texture.\n");
+        return false;
+   }  
     
-    /* True fullscreen mode */
-   // SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN); 
     return true; 
 }
 
-
 void draw_grid(int spacing, uint32_t color) {
     // draws a dot grid
-    for(int row = 0; row <  win_h; row += spacing) {
-        for(int col = 0; col < win_w; col += spacing) {
+    for(int row = 0; row <  display.windowHeight; row += spacing) {
+        for(int col = 0; col < display.windowWidth; col += spacing) {
            draw_pixel(col, row, color); 
         }
     }
 }
 void draw_pixel(int x, int y, uint32_t color) {
-    if(x >= 0 && x < win_w && y >= 0 && y < win_h) {
-    framebuffer[(win_w*y)+x] = color;
+    if(x >= 0 && x <  display.windowWidth && y >= 0 && y <  display.windowHeight) {
+    display.framebuffer[(display.windowWidth*y)+x] = color;
     } 
 }
 
@@ -123,30 +145,38 @@ void draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, uint32_t colo
 
 void render_framebuffer(void) {
     SDL_UpdateTexture(
-        framebuffer_texture,
+        display.framebufferTexture,
         NULL,
-        framebuffer,
-       (int)(win_w * sizeof(uint32_t))  // (int) typecast for SDL
+        display.framebuffer,
+       (int)(display.windowWidth * sizeof(uint32_t))  // (int) typecast for SDL
     );
 
-    SDL_RenderCopy(renderer, framebuffer_texture, NULL, NULL);
+    SDL_RenderCopy(display.rendererInstance, display.framebufferTexture, NULL, NULL);
 }
 
 void clear_framebuffer(uint32_t color) {
-    for(int i = 0; i < (win_w * win_h); i++) {
-        framebuffer[i] = color; 
+    for(int i = 0; i < (display.windowWidth * display.windowHeight); i++) {
+        display.framebuffer[i] = color; 
     } 
 }
 
 void clear_Zbuffer(void) {
-	for(int i = 0; i < (win_w * win_h); i++) {
-		g_Zbuffer[i] = 1.0; // Z-buffer starts with 1.0 in left handed coord sys by convention   
+	for(int i = 0; i < (display.windowWidth * display.windowHeight); i++) {
+		display.zBuffer[i] = 1.0; // Z-buffer starts with 1.0 in left handed coord sys by convention   
 	}
 
 }
 
 void destroy_window(void) { 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+    SDL_DestroyRenderer(display.rendererInstance);
+    SDL_DestroyWindow(display.windowInstance);
     SDL_Quit(); 
+}
+
+
+int getWindowWidth(void) {
+    return display.windowWidth;
+}
+int getWindowHeight(void) {
+    return display.windowHeight;
 }

@@ -19,12 +19,10 @@ typedef struct {
     vec3_t translation;  
 } mesh_t;
 
-// Global mesh
-extern mesh_t mesh;
+
 
 // Functions
 void load_cube_mesh(void);
-bool load_mesh_data(char* fname); // parse provided .obj file, 
-								 //  copy relevant data into the global mesh array 
-
+bool load_mesh_data(char* fname); // parses provided .obj file, copie data into mesh_t array 
+mesh_t* getMesh(void); 
 #endif

@@ -13,7 +13,7 @@
 #include "triangle.h"
 #include "upng.h"
 #include "camera.h"
-#include "controls.h"
+#include "renderer.h"
 #include "clipping.h"
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 #define  PI_CONST 3.14159
@@ -23,28 +23,31 @@ mat4_t g_worldMatrix;
 triangle_t* g_renderQueue = NULL; 
 uint32_t g_polyCount  = 0;
 uint32_t g_triangleCounter = 0; 
-bool is_running = false;
 int previous_frame_time = 0; // ms
 float g_deltaTime = 0; 
 mat4_t proj_matrix;
-char modelPath[] = "./assets/crab.obj"; 
-char texturePath[] = "./assets/crab.png"; 
 
  
-bool setup(void);
+bool setup(Renderer* renderer);
 void process_input(void);
 void update(void);
 void render(void);
 void free_resources(void);
 
 int main(void) {
-    is_running = init_win();
+    bool is_running = false;
+    Renderer defaultRenderer;   
     
+    if(!init_win()){
+        fprintf(stderr, "Unable to initalize window. Shutting down.\n");
+        return 1;
+    }
     if(!setup()) {
-        fprintf(stderr, "Setup failed. Shutting down.\n");
+        fprintf(stderr, "Renderer setup failed. Shutting down.\n");
         return 1;
     };
 
+    is_running = true; 
     while(is_running) {
        process_input();
        update();
@@ -58,48 +61,22 @@ int main(void) {
 }
 
 
-bool setup(void) {
-    // Allocate framebuffer
-    framebuffer = (uint32_t*)malloc(sizeof(uint32_t) * win_w * win_h);
-    if(!framebuffer) {
-        fprintf(stderr, "Failed to allocate framebuffer memory.\n");
-        return false;  
-    }
-    // Allocate z-buffer
-    g_Zbuffer = (float*)malloc(sizeof(float) * win_w * win_h); 
-    if(!g_Zbuffer) {
-		fprintf(stderr, "Failed to allocate z-buffer memory.\n");
-		return false; 
-	}
-   // framebuffer texture
-   framebuffer_texture = SDL_CreateTexture(
-        renderer,           // renderer responsible
-        SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_STREAMING,
-        win_w,
-        win_h
-   );
-   if(!framebuffer_texture) { 
-        fprintf(stderr, "Failed to allocate SDL_Texture.\n");
-        return false;
-   }
-
+bool setup(Renderer* renderer) {
+    char modelPath[] = "./assets/crab.obj"; 
+    char texturePath[] = "./assets/crab.png"; 
    // if unable to load custom model, load default cube and print msg
     if(!load_mesh_data(modelPath)) {
         printf("Error: unable to read specified .obj file.\n");
         printf("Loading default model...\n");  
-        load_cube_mesh(); 
-        // load default cube texture
-        mesh_texture = (uint32_t*)REDBRICK_TEXTURE; // mesh_texture (global) - defined in texture.h 
-        texture_width = 64;
-        texture_height = 64; 
+        load_cube_mesh();
+        load_defaultTexture();  
     }   
 
     // Allocate the draw list for all polys << Can eat all of the heap
-    g_polyCount = array_length(mesh.faces);
-    g_renderQueue = (triangle_t*)malloc(sizeof(triangle_t) * g_polyCount); 
-    if(!g_renderQueue) {
-		fprintf(stderr, "Error: not enough memory to process the model (polycount is too high).\n");
+    renderer->polyCount = array_length(getMesh()->faces);
+    renderer->renderQueue = (triangle_t*)malloc(sizeof(triangle_t) * renderer->polyCount); 
+    if(!renderer->renderQueue) {
+		fprintf(stderr, "Error: not enough memory to process the model (The polycount is too high).\n");
 		return false; 
 	}
     // Init view settings 
