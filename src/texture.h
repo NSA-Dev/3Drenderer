@@ -11,5 +11,10 @@ typedef struct {
  
 
 bool load_png_textureData(char* filename);
-void load_defaultTexture(void); // loads default Redbrick texture   
+void load_defaultTexture(void); // loads default Redbrick texture
+bool textureIsLoaded(void);
+uint32_t* getMeshTexturePtr(void);
+int getTextureHeight(void);
+int getTextureWidth(void);
+void texture_free(void);      
 #endif 

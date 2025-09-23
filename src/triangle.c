@@ -18,7 +18,7 @@ void fill_upper_half(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t co
 
     // loop all rows
     for(int y = y0; y <= y2; y++) {
-        draw_bresLine(x_start, y, x_end, y, color); 
+        disp_drawBresLine(x_start, y, x_end, y, color); 
         x_start += inv_m1;
         x_end += inv_m2;
     }
@@ -36,7 +36,7 @@ void fill_lower_half(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t co
     float x_end = x2;
 
     for(int y = y2; y >= y1; y--) {
-        draw_bresLine(x_start, y, x_end, y, color);
+        disp_drawBresLine(x_start, y, x_end, y, color);
         x_start -= inv_m1;
         x_end -= inv_m2;
     }
@@ -187,7 +187,8 @@ void draw_solid_triangle(triangle_t* triangle) {
 }
 
 void draw_triangle_pixel(int x, int y, uint32_t color, vec4_t* vert_a, vec4_t* vert_b, vec4_t* vert_c) {
-	float interW_inverted; // used for depth calculations  
+	float* currentZbuffer = disp_getZbufferPtr();
+    float interW_inverted; // used for depth calculations  
 	// package xy compononets for barycentric weights computation
 	vec2_t a_xy = vec2_from_vec4(vert_a);
 	vec2_t b_xy = vec2_from_vec4(vert_b);
@@ -200,15 +201,15 @@ void draw_triangle_pixel(int x, int y, uint32_t color, vec4_t* vert_a, vec4_t* v
 	float gamma = weights.z;
 	
 	interW_inverted = (1 / vert_a->w) * alpha + (1 / vert_b->w) * beta + (1 / vert_c->w) * gamma;
-	int pixelPos = (win_w * y) + x; // pre-compute current pixel position on the screen
+	int pixelPos = (disp_getWindowWidth() * y) + x; // pre-compute current pixel position on the screen
 	// adjust 1/w so that closer pixels have smaller component value
 	interW_inverted = 1.0 - interW_inverted;
 	
 	// draw & update Z-buff only if depth is less then previous 
-	if(interW_inverted < g_Zbuffer[pixelPos]) {
-		draw_pixel(x, y, color);
+	if(interW_inverted < currentZbuffer[pixelPos]) {
+		disp_drawPixel(x, y, color);
 		// update Z buffer at a current position with the calculated 1/w
-		g_Zbuffer[pixelPos]  = interW_inverted; 
+		currentZbuffer[pixelPos]  = interW_inverted; 
 	}   
 }
 
@@ -286,29 +287,33 @@ void draw_texel(
 	interU /= interW_inverted;
 	interV /= interW_inverted; 
 
-    // scale uv to texture H x W 
-    int textureX = abs((int)(interU * texture_width)) % texture_width; // can clamp here by % texture_width
-    int textureY = abs((int)(interV * texture_height)) % texture_height; // can clamp here by % texture_height 
+    // scale uv to texture H x W
+    int texWidth, texHeight;
+    texWidth =  getTextureWidth();
+    texHeight = getTextureHeight();
+    int textureX = abs((int)(interU * texWidth)) % texWidth; // can clamp here by % texture_width
+    int textureY = abs((int)(interV * texHeight)) % texHeight; // can clamp here by % texture_height 
 
 	/* Note the clamp method can produce artifacts, i.e 
 	   (Polygon gaps: empty cracks on polygons, especially on triangles sharing edges.)
 	   Since fill conventions, rasterization rules, subpixel precision are not handled properly. 
 	*/
 	
-	int pixelPos = (win_w * y) + x; // pre-compute current pixel position on the screen 
+	int pixelPos = (disp_getWindowWidth() * y) + x; // pre-compute current pixel position on the screen 
 	
 	// adjust 1/w so that closer pixels have smaller component value
 	interW_inverted = 1.0 - interW_inverted; 
-	
+	float* zBuffer = disp_getZbufferPtr();
+    uint32_t* meshTexture = getMeshTexturePtr();
 	// draw & update Z-buff only if depth is less then previous 
-	if(interW_inverted < g_Zbuffer[pixelPos]) {
+	if(interW_inverted < zBuffer[pixelPos]) {
 		
 		// clamp the array index before passing to the draw_pixel % (texture_width * texture_height)
-		int texIndex = ((texture_width * textureY) + textureX) ; 
-		draw_pixel(x, y, mesh_texture[texIndex]);
+		int texIndex = ((texWidth * textureY) + textureX) ; 
+		disp_drawPixel(x, y, meshTexture[texIndex]);
 	
 		// update Z buffer at a current position with the calculated 1/w
-		g_Zbuffer[pixelPos]  = interW_inverted; 
+		zBuffer[pixelPos]  = interW_inverted; 
 	} 
 }
 

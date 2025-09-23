@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include "matrix.h"
 #include "triangle.h"
+#include "mesh.h"
+#include "camera.h"
 
 #define MAX_TRIANGLES 10000  
 #define FPS 60
@@ -48,15 +50,13 @@ typedef struct {
 	mat4_t projectionMatrix;
 	RenderingMode renderingMode;
 	CullMethod cullMethod;
-	LightMethod LightMethod;
+	LightMethod lightMethod;
 	ControlMode controlMode;
-	bool isRunning;  
+	bool isRunning;
+	camera_t* cameraPtr;
+	mesh_t* meshPtr;   
 } Renderer; 
-// STOPPED HERE
-void r_setViewMatrix(mat4_t* m);
-void r_setWorldMatrix(mat4_t* m);
-void r_set 
-void r_exit(void);
+
 
 
 #endif

@@ -28,8 +28,6 @@ typedef struct {
 } polygon_t;
 
 
-extern plane_t g_viewPlanes[NUM_PLANES];
-
 
 void initFrustumPlanes(float fov_x, float fov_y, float z_near, float z_far);
 polygon_t createPolygon(vec3_t* v0, vec3_t* v1, vec3_t* v2, tex2_t t0, tex2_t t1, tex2_t t2);
@@ -39,13 +37,6 @@ float float_lerp(float a, float b, float factor);
 vec3_t calculateIntersection(vec3_t* v0, vec3_t* v1, float d0, float d1);
 int getTriangleCount(polygon_t* polygon); 
 void slicePolygon(polygon_t* polygon, triangle_t storage[], int* slicesCounter); 
-/*
-****    DEBUG   ****
-polygon_t debug_polygon_from_triangle(vec3_t v0, vec3_t v1, vec3_t v2);
-void debug_triangles_from_polygon(polygon_t* polygon, triangle_t triangles[], int* num_triangles);
-void debug_clip_polygon_against_plane(polygon_t* polygon, int plane);
-void debug_clip_polygon(polygon_t* polygon); 
-****    END OF DEBUG    ****
-*/
+
 
 #endif

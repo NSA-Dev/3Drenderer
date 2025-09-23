@@ -20,7 +20,7 @@ bool disp_initWin(void) {
     }
     /* Query display's video mode from main(0) display */
     SDL_DisplayMode display_mode;
-    if(!SDL_GetCurrentDisplayMode(0, &display_mode)){
+    if(SDL_GetCurrentDisplayMode(0, &display_mode)){
         display.windowWidth = DEFAULT_WINDOW_W;
         display.windowHeight = DEFAULT_WINDOW_H;
         display.aspectRatio_Y = (float) DEFAULT_WINDOW_H / DEFAULT_WINDOW_W;
@@ -46,12 +46,12 @@ bool disp_initWin(void) {
         return false; 
     }   
     /* Handle renderer creation */
-    display.rendererInstance = SDL_CreateRenderer(
+    display.SDLrendererInstance = SDL_CreateRenderer(
             display.windowInstance,                 
             -1,                     // the index of a display device -1 default
             0                       // extra rend flags 
     );
-    if(!display.rendererInstance) {
+    if(!display.SDLrendererInstance) {
         fprintf(stderr, "Error creating SDL renderer.\n");
         return false;
     } 
@@ -71,7 +71,7 @@ bool disp_initWin(void) {
 	}
    // framebuffer texture
    display.framebufferTexture = SDL_CreateTexture(
-        display.rendererInstance,           // renderer responsible
+        display.SDLrendererInstance,           // renderer responsible
         SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_STREAMING,
         display.windowWidth,
@@ -151,7 +151,7 @@ void disp_renderFramebuffer(void) {
        (int)(display.windowWidth * sizeof(uint32_t))  // (int) typecast for SDL
     );
 
-    SDL_RenderCopy(display.rendererInstance, display.framebufferTexture, NULL, NULL);
+    SDL_RenderCopy(display.SDLrendererInstance, display.framebufferTexture, NULL, NULL);
 }
 
 void disp_clearFramebuffer(uint32_t color) {
@@ -168,7 +168,7 @@ void disp_clearZbuffer(void) {
 }
 
 void disp_destroyWindow(void) { 
-    SDL_DestroyRenderer(display.rendererInstance);
+    SDL_DestroyRenderer(display.SDLrendererInstance);
     SDL_DestroyWindow(display.windowInstance);
     SDL_Quit(); 
 }
@@ -187,4 +187,18 @@ float disp_getAspectY(void) {
 
 float disp_getAspectX(void) {
     return display.aspectRatio_X; 
-}  
+}
+
+
+void disp_updateSDL(void) {
+    SDL_RenderPresent(display.SDLrendererInstance); 
+}
+
+float* disp_getZbufferPtr(void) {
+    return display.zBuffer; 
+}
+
+void disp_free(void) {
+    if(display.framebuffer != NULL) free(display.framebuffer);
+    if(display.zBuffer != NULL) free(display.zBuffer);
+}    

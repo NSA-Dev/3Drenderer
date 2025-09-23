@@ -1,4 +1,5 @@
 #include "texture.h"
+#include <stdlib.h>
 
 static int texture_width = 64;
 static int texture_height = 64; 
@@ -97,4 +98,24 @@ void load_defaultTexture(void) {
         texture_width = 64;
         texture_height = 64; 
 }
+bool textureIsLoaded(void) {
+    if(mesh_texture != NULL) return true;
+    return false;
+} 
 
+
+uint32_t* getMeshTexturePtr(void) {
+    return mesh_texture; 
+}
+
+int getTextureHeight(void) {
+    return texture_height;
+}
+int getTextureWidth(void) {
+    return texture_width; 
+}
+
+void texture_free(void) {
+    upng_free(png_texture);
+    if(mesh_texture) free(mesh_texture); 
+} 

@@ -26,7 +26,7 @@ static vec3_t cube_verts[N_CUBE_VERTS] = {
 }; 
 
 // This one holds vertex indexes to select from mesh_verts[] 
-face_t cube_faces[N_CUBE_FACES] = {
+static face_t cube_faces[N_CUBE_FACES] = {
     // front
     { .a = 1, .b = 2, .c = 3, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
     { .a = 1, .b = 3, .c = 4, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
@@ -115,7 +115,7 @@ bool load_mesh_data(char* fname) {
     return true; 
 }
 
-mesh_t* getMesh(void) {
+mesh_t* getMeshPtr(void) {
     return &mesh; 
 }
 
@@ -128,4 +128,9 @@ void mesh_setRotationY(float f) {
 }
 void mesh_setRotationZ(float f) {
     mesh.rotation.z += f; 
+}
+
+void mesh_free(void) {
+    array_free(mesh.faces);
+    array_free(mesh.verts);
 }

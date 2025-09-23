@@ -9,6 +9,5 @@ typedef struct {
 	float  yaw; // angle in radians representing rotation around Y
 } camera_t; 
 
-extern camera_t g_camera; 
-
+camera_t* getCameraPtr(void); 
 #endif

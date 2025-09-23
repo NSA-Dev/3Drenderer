@@ -8,7 +8,7 @@ typedef struct {
 	int	windowWidth;
 	int windowHeight;
 	SDL_Window* windowInstance;
-	SDL_Renderer* rendererInstance;
+	SDL_Renderer* SDLrendererInstance;
 	uint32_t* framebuffer;
 	float* zBuffer;
 	SDL_Texture* framebufferTexture;
@@ -31,5 +31,8 @@ void disp_destroyWindow(void);
 int disp_getWindowWidth(void);
 int disp_getWindowHeight(void);
 float disp_getAspectY(void);
-float disp_getAspectX(void); 
+float disp_getAspectX(void);
+void disp_updateSDL(void);
+float* disp_getZbufferPtr(void);
+void disp_free(void);  
 #endif
