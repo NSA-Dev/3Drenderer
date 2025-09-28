@@ -1,3 +1,11 @@
 #include "controls.h"
 
-ControlMode g_controlMode; 
+static ControlMode controlMode; 
+
+
+void setControlMode(ControlMode mode) {
+    controlMode = mode; 
+}
+ControlMode getControlMode(void) {
+    return controlMode; 
+}

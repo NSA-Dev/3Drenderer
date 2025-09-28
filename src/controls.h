@@ -12,8 +12,8 @@ typedef enum {
 	MANUAL,
 	SPIN
 }ControlMode;
-
-extern ControlMode g_controlMode; 
-
+ 
+void setControlMode(ControlMode mode);
+ControlMode getControlMode(void); 
 
 #endif

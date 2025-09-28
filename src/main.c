@@ -95,122 +95,167 @@ bool setup(void) {
 			printf("Error: unable to open provided texture.\n Loading default..."); 
 			mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
 	}
-     
+    // Set default config here
     setRenderingMode(RENDER_WIRE_VERTEX);
     setCullMethod(CULL_BACKFACE);
-    setLightMethod(LIGHT_NONE); 
-    g_controlMode = SPIN; // TODO: remove global 
+    setLightMethod(LIGHT_NONE);
+    setControlMode(SPIN);   
     return true; 
 }
 
 void process_input(void) {
+    LightMethod currentLightMethod = getLightMethod();
+    ControlMode currentControlMode = getControlMode(); 
     SDL_Event event; 
-    SDL_PollEvent(&event);  // needs a pointer to the event
-    
-    switch(event.type) {
-        case SDL_QUIT:
-            is_running = false;
-            break;
-        case SDL_KEYDOWN:
-            // Quit the program
-            if(event.key.keysym.sym == SDLK_ESCAPE)
+    while(SDL_PollEvent(&event)) {
+        switch(event.type) {
+            case SDL_QUIT:
                 is_running = false;
-            if(g_controlMode == MANUAL) {    
-            // Manual camera control
-             if (event.key.keysym.sym == SDLK_LEFT)
-                mesh.rotation.y += MESH_ROTATION_FACTOR * g_deltaTime;
-             if(event.key.keysym.sym == SDLK_RIGHT)
-                mesh.rotation.y -= MESH_ROTATION_FACTOR * g_deltaTime;
-             if (event.key.keysym.sym == SDLK_UP)
-                mesh.rotation.x += MESH_ROTATION_FACTOR * g_deltaTime;
-             if(event.key.keysym.sym == SDLK_DOWN)
-                mesh.rotation.x -= MESH_ROTATION_FACTOR * g_deltaTime;
-            // Zoom  TODO add camera control limits
-             if(event.key.keysym.sym == SDLK_KP_PLUS)
-                mesh.translation.z += 1 * g_deltaTime;
-             if(event.key.keysym.sym == SDLK_KP_MINUS)
-                mesh.translation.z -= 1 * g_deltaTime;
-		// cam controls << active only if g_controlMode == MANUAL   
-		   // going too close to the obj 
-		   //  or out of bounds crashes the program, due to perspective
-		   // projection errors 
-             if(event.key.keysym.sym == SDLK_a)
-                g_camera.yaw += CAM_YAW_FACTOR * g_deltaTime;
-             if(event.key.keysym.sym == SDLK_d)
-                g_camera.yaw -= CAM_YAW_FACTOR * g_deltaTime;
-                
-             if(event.key.keysym.sym == SDLK_w) {
-                g_camera.forwardVelocity = vec3_mul(&g_camera.direction, 
-									 CAM_VELOCITY_FACTOR * g_deltaTime);
-                g_camera.position = vec3_add(&g_camera.position, 
-											&g_camera.forwardVelocity); 
-             }
-             if(event.key.keysym.sym == SDLK_s) {
-                g_camera.forwardVelocity = vec3_mul(&g_camera.direction, 
-									 CAM_VELOCITY_FACTOR * g_deltaTime);
-                g_camera.position = vec3_sub(&g_camera.position, 
-											&g_camera.forwardVelocity);  
-             }
-             if(event.key.keysym.sym == SDLK_KP_8)
-                g_camera.position.z += CAM_POS_FACTOR * g_deltaTime;
-             if(event.key.keysym.sym == SDLK_KP_2)
-                g_camera.position.z -= CAM_POS_FACTOR * g_deltaTime;
-             if(event.key.keysym.sym == SDLK_KP_4)
-                g_camera.position.x += CAM_POS_FACTOR * g_deltaTime;
-             if(event.key.keysym.sym == SDLK_KP_6)
-                g_camera.position.x -= CAM_POS_FACTOR * g_deltaTime;
-             if(event.key.keysym.sym == SDLK_KP_9)
-                g_camera.position.y += CAM_POS_FACTOR * g_deltaTime;
-             if(event.key.keysym.sym == SDLK_KP_3)
-                g_camera.position.y -= CAM_POS_FACTOR * g_deltaTime;
-           // stretch the mesh
-             if(event.key.keysym.sym == SDLK_q)
-                mesh.scale.x += MESH_SCALE_FACTOR * g_deltaTime;
-             if(event.key.keysym.sym == SDLK_e)
-                mesh.scale.x -= MESH_SCALE_FACTOR * g_deltaTime;
-            }
-            // Rendering modes
-             if(event.key.keysym.sym == SDLK_F1) {
-				 setRenderingMode(RENDER_WIRE);
-            }    
-             if (event.key.keysym.sym == SDLK_F2) {
-                setRenderingMode(RENDER_WIRE_VERTEX); 
-            }
-             if(event.key.keysym.sym == SDLK_F3) {
-                setRenderingMode(RENDER_SOLID); 
-            }
-             if (event.key.keysym.sym == SDLK_F4) {
-                setRenderingMode(RENDER_SOLID_WIRE); 
-            }
-             if(event.key.keysym.sym == SDLK_F5){
-                setCullMethod(CULL_BACKFACE);
-			}
-             if(event.key.keysym.sym == SDLK_F6) {
-                setCullMethod(CULL_NONE);       
-            }    
-             if(event.key.keysym.sym == SDLK_F7) {
-                if(mesh_texture != NULL) {
-                    setRenderingMode(RENDER_TEXTURED);   
+                break;
+            case SDL_KEYDOWN:
+                // Quit the program
+                if(event.key.keysym.sym == SDLK_ESCAPE) {
+                    is_running = false;
+                    break;
                 }
-            }
-             if(event.key.keysym.sym == SDLK_F8) {
-                LightMethod current = getLightMethod(); 
-               if(current == LIGHT_NONE) {
-                    setLightMethod(LIGHT_BASIC);
-				} else {
-                    setLightMethod(LIGHT_NONE); 	
-				}
-            }
-             if(event.key.keysym.sym == SDLK_F9) {
-               if(g_controlMode == SPIN) {
-					g_controlMode = MANUAL;
-				} else {
-					g_controlMode = SPIN; 	
-				}
-            }
-                
-            break; 
+                if(currentControlMode == MANUAL) {    
+                // Manual camera control
+                if (event.key.keysym.sym == SDLK_LEFT) {
+                    mesh.rotation.y += MESH_ROTATION_FACTOR * g_deltaTime;
+                    break;
+                }
+                if(event.key.keysym.sym == SDLK_RIGHT) {
+                    mesh.rotation.y -= MESH_ROTATION_FACTOR * g_deltaTime;
+                    break;
+                }
+                if (event.key.keysym.sym == SDLK_UP) {
+                    mesh.rotation.x += MESH_ROTATION_FACTOR * g_deltaTime;
+                    break;
+                }
+                if(event.key.keysym.sym == SDLK_DOWN) {
+                    mesh.rotation.x -= MESH_ROTATION_FACTOR * g_deltaTime;
+                    break;
+                }
+                // Zoom  TODO add camera control limits
+                if(event.key.keysym.sym == SDLK_KP_PLUS) {
+                    mesh.translation.z += 1 * g_deltaTime;
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_KP_MINUS) {
+                    mesh.translation.z -= 1 * g_deltaTime;
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_a) {
+                    g_camera.yaw += CAM_YAW_FACTOR * g_deltaTime;
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_d) {
+                    g_camera.yaw -= CAM_YAW_FACTOR * g_deltaTime;
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_w) {
+                    g_camera.forwardVelocity = vec3_mul(&g_camera.direction, 
+                                        CAM_VELOCITY_FACTOR * g_deltaTime);
+                    g_camera.position = vec3_add(&g_camera.position, 
+                                                &g_camera.forwardVelocity);
+                    break;  
+                }
+                if(event.key.keysym.sym == SDLK_s) {
+                    g_camera.forwardVelocity = vec3_mul(&g_camera.direction, 
+                                        CAM_VELOCITY_FACTOR * g_deltaTime);
+                    g_camera.position = vec3_sub(&g_camera.position, 
+                                                &g_camera.forwardVelocity);
+                    break;   
+                }
+                if(event.key.keysym.sym == SDLK_KP_8) {
+                    g_camera.position.z += CAM_POS_FACTOR * g_deltaTime;
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_KP_2) {
+                    g_camera.position.z -= CAM_POS_FACTOR * g_deltaTime;
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_KP_4) {
+                    g_camera.position.x += CAM_POS_FACTOR * g_deltaTime;
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_KP_6) {
+                    g_camera.position.x -= CAM_POS_FACTOR * g_deltaTime;
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_KP_9) {
+                    g_camera.position.y += CAM_POS_FACTOR * g_deltaTime;
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_KP_3) {
+                    g_camera.position.y -= CAM_POS_FACTOR * g_deltaTime;
+                    break;
+                } 
+                // stretch the mesh
+                if(event.key.keysym.sym == SDLK_q) {
+                    mesh.scale.x += MESH_SCALE_FACTOR * g_deltaTime;
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_e) {
+                    mesh.scale.x -= MESH_SCALE_FACTOR * g_deltaTime;
+                    break;
+                } 
+                }
+                // Rendering modes
+                if(event.key.keysym.sym == SDLK_F1) {
+                    setRenderingMode(RENDER_WIRE);
+                    break;
+                }    
+                if (event.key.keysym.sym == SDLK_F2) {
+                    setRenderingMode(RENDER_WIRE_VERTEX);
+                    break; 
+                }
+                if(event.key.keysym.sym == SDLK_F3) {
+                    setRenderingMode(RENDER_SOLID);
+                    break; 
+                }
+                if (event.key.keysym.sym == SDLK_F4) {
+                    setRenderingMode(RENDER_SOLID_WIRE);
+                    break; 
+                }
+                if(event.key.keysym.sym == SDLK_F5){
+                    setCullMethod(CULL_BACKFACE);
+                    break;
+                }
+                if(event.key.keysym.sym == SDLK_F6) {
+                    setCullMethod(CULL_NONE);
+                    break;       
+                }    
+                if(event.key.keysym.sym == SDLK_F7) {
+                    if(mesh_texture != NULL) {
+                        setRenderingMode(RENDER_TEXTURED);
+                        break;   
+                    }
+                }
+                if(event.key.keysym.sym == SDLK_F8) { 
+                if(currentLightMethod == LIGHT_NONE) {
+                        setLightMethod(LIGHT_BASIC);
+                        break;
+                    } else {
+                        setLightMethod(LIGHT_NONE);
+                        break; 	
+                    }
+                }
+                if(event.key.keysym.sym == SDLK_F9) {
+                if(currentControlMode == SPIN) {
+                        setControlMode(MANUAL);
+                        break;
+                    } else {
+                        setControlMode(SPIN);
+                        break; 	
+                    }
+                }
+                    
+                break; 
+        }
     }
+    
+    
 }
 
 void update(void) { 
@@ -225,13 +270,14 @@ void update(void) {
     // Poll current state
     CullMethod currentCulling = getCullMethod();
     LightMethod currentLight = getLightMethod();
+    ControlMode currentControls = getControlMode();
     int currentWidth = getWindowWidth();
     int currentHeight = getWindowHeight();
     // Reset the global triangle counter for this frame
     g_triangleCounter = 0; 
 
     // Adjust mesh by default values (e.g. if spin mode is active) 
-    if(g_controlMode == SPIN) mesh.rotation.y += MESH_SPIN_FACTOR * g_deltaTime; 
+    if(currentControls == SPIN) mesh.rotation.y += MESH_SPIN_FACTOR * g_deltaTime; 
     mesh.translation.z = DEFAULT_CAM_DEPTH; 
 
     // Set up default camera  target (looking at the positive z-axis)
