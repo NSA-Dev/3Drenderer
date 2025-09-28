@@ -412,7 +412,6 @@ void update(void) {
 
 
 void render(void) {
-    RenderingMode currentRenderingMode = getRenderingMode();
     clear_framebuffer(COLOR_BLACK);
     clear_Zbuffer();
     draw_grid(GRID_SPACING, COLOR_LIGHT_GRAY);         
@@ -421,7 +420,7 @@ void render(void) {
     for(int i = 0; i < g_triangleCounter; i++) {
         triangle_t triangle = g_renderQueue[i];
         
-       if(currentRenderingMode == RENDER_TEXTURED || currentRenderingMode == RENDER_TEXTURED_WIRE) {
+       if(renderTexture()) {
            draw_textured_triangle(
                 triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w, triangle.texcoords[0].u, triangle.texcoords[0].v,
                 triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w,triangle.texcoords[1].u, triangle.texcoords[1].v,
@@ -430,17 +429,17 @@ void render(void) {
                 );        
        }
         
-        if(currentRenderingMode == RENDER_WIRE_VERTEX) {
+        if(renderVerts()) {
             draw_rect(triangle.points[0].x - 3, triangle.points[0].y - 3, 4, 4, COLOR_RED); 
             draw_rect(triangle.points[1].x - 3, triangle.points[1].y - 3, 4, 4, COLOR_RED); 
             draw_rect(triangle.points[2].x - 3, triangle.points[2].y - 3, 4, 4, COLOR_RED);
         }
 
-        if(currentRenderingMode == RENDER_SOLID) {
+        if(renderSolids()) {
             draw_solid_triangle(&triangle); 
         }
 
-        if(currentRenderingMode == RENDER_WIRE || currentRenderingMode == RENDER_WIRE_VERTEX || currentRenderingMode == RENDER_SOLID_WIRE || currentRenderingMode == RENDER_TEXTURED_WIRE) {
+        if(renderWire()) {
             draw_triangle(
                 triangle.points[0].x, triangle.points[0].y,
                 triangle.points[1].x, triangle.points[1].y,

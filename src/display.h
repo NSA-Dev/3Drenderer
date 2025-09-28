@@ -48,5 +48,10 @@ void setCullMethod(CullMethod method);
 LightMethod getLightMethod(void);
 CullMethod getCullMethod(void);
 RenderingMode getRenderingMode(void);
-float* getZbufferPtr(void); 
+float* getZbufferPtr(void);
+bool renderTexture(void);
+bool renderWire(void);
+bool renderVerts(void);
+bool renderSolids(void);
+
 #endif

@@ -181,7 +181,6 @@ void destroy_window(void) {
     if(Zbuffer != NULL) free(Zbuffer); 
 }
 
-
 int getWindowWidth(void) {
     return win_w;
 }
@@ -210,7 +209,20 @@ RenderingMode getRenderingMode(void) {
     return renderingMode; 
 }
 
-
 float* getZbufferPtr(void) {
     return Zbuffer; 
+}
+
+bool renderTexture(void) {
+    return (renderingMode == RENDER_TEXTURED || renderingMode == RENDER_TEXTURED_WIRE); 
+}
+bool renderWire(void) {
+    return (renderingMode == RENDER_WIRE || renderingMode == RENDER_WIRE_VERTEX 
+            || renderingMode == RENDER_SOLID_WIRE || renderingMode == RENDER_TEXTURED_WIRE);
+}
+bool renderVerts(void) {
+   return (renderingMode == RENDER_WIRE_VERTEX); 
+}
+bool renderSolids(void) {
+    return (renderingMode == RENDER_SOLID); 
 }
