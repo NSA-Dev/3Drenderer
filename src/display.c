@@ -1,16 +1,16 @@
 #include "display.h"
 
 /* global init */
- RenderingMode g_renderingMode;
- CullMethod g_cullMethod;
- LightMethod g_lightMethod; 
- SDL_Window* window = NULL;
- SDL_Renderer* renderer = NULL;
- uint32_t* framebuffer = NULL;
- float* g_Zbuffer = NULL; 
- SDL_Texture* framebuffer_texture = NULL;
-int win_w = 800;    // fallback value
-int win_h = 600;    // fallback value
+static RenderingMode renderingMode;
+static CullMethod cullMethod;
+static LightMethod lightMethod; 
+static SDL_Window* window = NULL;
+static SDL_Renderer* renderer = NULL;
+static uint32_t* framebuffer = NULL;
+static float* Zbuffer = NULL; 
+static SDL_Texture* framebuffer_texture = NULL;
+static int win_w = 800;    // fallback value
+static int win_h = 600;    // fallback value
 
 bool init_window(void) {
 
@@ -66,8 +66,8 @@ bool init_window(void) {
         return false;  
     }
     // Allocate z-buffer
-    g_Zbuffer = (float*)malloc(sizeof(float) * win_w * win_h); 
-    if(!g_Zbuffer) {
+    Zbuffer = (float*)malloc(sizeof(float) * win_w * win_h); 
+    if(!Zbuffer) {
 		fprintf(stderr, "Failed to allocate z-buffer memory.\n");
 		return false; 
 	}
@@ -168,7 +168,7 @@ void clear_framebuffer(uint32_t color) {
 
 void clear_Zbuffer(void) {
 	for(int i = 0; i < (win_w * win_h); i++) {
-		g_Zbuffer[i] = 1.0; // Z-buffer starts with 1.0 in left handed coord sys by convention   
+		Zbuffer[i] = 1.0; // Z-buffer starts with 1.0 in left handed coord sys by convention   
 	}
 
 }
@@ -176,5 +176,41 @@ void clear_Zbuffer(void) {
 void destroy_window(void) { 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    SDL_Quit(); 
+    SDL_Quit();
+    if(framebuffer != NULL) free(framebuffer);
+    if(Zbuffer != NULL) free(Zbuffer); 
+}
+
+
+int getWindowWidth(void) {
+    return win_w;
+}
+int getWindowHeight(void) {
+    return win_h;
+}
+
+void setRenderingMode(RenderingMode mode) {
+    renderingMode = mode; 
+}
+void setLightMethod(LightMethod method) {
+    lightMethod = method;
+} 
+void setCullMethod(CullMethod method) {
+    cullMethod = method; 
+}
+ 
+LightMethod getLightMethod(void) {
+    return lightMethod;
+}
+
+CullMethod getCullMethod(void) {
+    return cullMethod;
+}
+RenderingMode getRenderingMode(void) {
+    return renderingMode; 
+}
+
+
+float* getZbufferPtr(void) {
+    return Zbuffer; 
 }

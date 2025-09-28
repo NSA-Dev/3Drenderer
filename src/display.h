@@ -29,18 +29,6 @@ typedef enum {
 	LIGHT_BASIC
 } LightMethod;
 
-/* global declarations*/
-extern RenderingMode g_renderingMode;
-extern CullMethod g_cullMethod;
-extern LightMethod g_lightMethod; 
-extern SDL_Window* window;
-extern SDL_Renderer* renderer;
-extern uint32_t* framebuffer;
-extern float* g_Zbuffer; 
-extern SDL_Texture* framebuffer_texture;
-extern int win_w;    // fallback value
-extern int win_h;    // fallback value
-
 /* signatures */
 bool init_window(void);
 void draw_grid(int spacing, uint32_t color);
@@ -52,4 +40,13 @@ void render_framebuffer(void);
 void clear_framebuffer(uint32_t color);
 void clear_Zbuffer(void);
 void destroy_window(void);
+int getWindowWidth(void);
+int getWindowHeight(void);
+void setRenderingMode(RenderingMode mode);
+void setLightMethod(LightMethod method); 
+void setCullMethod(CullMethod method); 
+LightMethod getLightMethod(void);
+CullMethod getCullMethod(void);
+RenderingMode getRenderingMode(void);
+float* getZbufferPtr(void); 
 #endif

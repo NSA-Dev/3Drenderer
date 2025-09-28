@@ -77,9 +77,10 @@ bool setup(void) {
 		fprintf(stderr, "Error: not enough memory to process the model (polycount is too high).\n");
 		return false; 
 	}
+    
     // Init view settings 
-    float aspect_y = (float)win_h / (float)win_w;
-    float aspect_x = (float)win_w / (float)win_h;
+    float aspect_y = (float)getWindowHeight() / (float)getWindowWidth();
+    float aspect_x = (float)getWindowWidth() / (float)getWindowHeight();
     float fov_y = 3.141592 / 2.0; // the same as 180/3, or 60deg
     float fov_x = atan(tan(fov_y / 2) * aspect_x) * 2;
     float z_near = 1.0;
@@ -95,10 +96,10 @@ bool setup(void) {
 			mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
 	}
      
-    g_renderingMode = RENDER_WIRE_VERTEX;
-    g_cullMethod = CULL_BACKFACE;  
-    g_lightMethod = LIGHT_NONE; 
-    g_controlMode = SPIN; 
+    setRenderingMode(RENDER_WIRE_VERTEX);
+    setCullMethod(CULL_BACKFACE);
+    setLightMethod(LIGHT_NONE); 
+    g_controlMode = SPIN; // TODO: remove global 
     return true; 
 }
 
@@ -170,33 +171,34 @@ void process_input(void) {
             }
             // Rendering modes
              if(event.key.keysym.sym == SDLK_F1) {
-				 g_renderingMode = RENDER_WIRE;
+				 setRenderingMode(RENDER_WIRE);
             }    
              if (event.key.keysym.sym == SDLK_F2) {
-				 g_renderingMode = RENDER_WIRE_VERTEX; 
+                setRenderingMode(RENDER_WIRE_VERTEX); 
             }
              if(event.key.keysym.sym == SDLK_F3) {
-				 g_renderingMode = RENDER_SOLID; 
+                setRenderingMode(RENDER_SOLID); 
             }
              if (event.key.keysym.sym == SDLK_F4) {
-				 g_renderingMode = RENDER_SOLID_WIRE; 
+                setRenderingMode(RENDER_SOLID_WIRE); 
             }
              if(event.key.keysym.sym == SDLK_F5){
-				g_cullMethod = CULL_BACKFACE;
+                setCullMethod(CULL_BACKFACE);
 			}
              if(event.key.keysym.sym == SDLK_F6) {
-				 g_cullMethod = CULL_NONE;       
+                setCullMethod(CULL_NONE);       
             }    
              if(event.key.keysym.sym == SDLK_F7) {
                 if(mesh_texture != NULL) {
-					g_renderingMode = RENDER_TEXTURED;   
+                    setRenderingMode(RENDER_TEXTURED);   
                 }
             }
              if(event.key.keysym.sym == SDLK_F8) {
-               if(g_lightMethod == LIGHT_NONE) {
-					g_lightMethod = LIGHT_BASIC;
+                LightMethod current = getLightMethod(); 
+               if(current == LIGHT_NONE) {
+                    setLightMethod(LIGHT_BASIC);
 				} else {
-					g_lightMethod = LIGHT_NONE; 	
+                    setLightMethod(LIGHT_NONE); 	
 				}
             }
              if(event.key.keysym.sym == SDLK_F9) {
@@ -211,7 +213,7 @@ void process_input(void) {
     }
 }
 
-void update(void) {
+void update(void) { 
     // Synchronize frames before proceeding
     int elapsedTime = SDL_GetTicks() - previous_frame_time; 
     int waitTime = FTT - elapsedTime; 
@@ -220,7 +222,11 @@ void update(void) {
     }
     g_deltaTime = (SDL_GetTicks() - previous_frame_time) / 1000.0; 
     previous_frame_time = SDL_GetTicks(); 
-
+    // Poll current state
+    CullMethod currentCulling = getCullMethod();
+    LightMethod currentLight = getLightMethod();
+    int currentWidth = getWindowWidth();
+    int currentHeight = getWindowHeight();
     // Reset the global triangle counter for this frame
     g_triangleCounter = 0; 
 
@@ -290,7 +296,7 @@ void update(void) {
         vec3_norm(&normal);
         
         // Perform Backface culling if needed
-        if(g_cullMethod == CULL_BACKFACE) {
+        if(currentCulling == CULL_BACKFACE) {
            vec3_t origin = { 0, 0, 0 };
            vec3_t cameraRay = vec3_sub(&origin, &A);
            float alignmentFactor = vec3_dot(&normal, &cameraRay);
@@ -298,7 +304,7 @@ void update(void) {
         }
 
         // Lighting
-        if(g_lightMethod == LIGHT_BASIC) {
+        if(currentLight == LIGHT_BASIC) {
                 float ray_alignment = -vec3_dot(&normal, &global_light.direction); 
                 currentFace.color = light_apply_intensity(currentFace.color, ray_alignment); 
         }
@@ -328,10 +334,10 @@ void update(void) {
                 // Flip verticaly respective to current coord system
                 projectedVertices[j].y *= -1; // check texture allignment
                 // Scale and translate into view
-                projectedVertices[j].x *= (win_w / 2.0); 
-                projectedVertices[j].y *= (win_h / 2.0); 
-                projectedVertices[j].x += (win_w / 2.0);
-                projectedVertices[j].y += (win_h / 2.0);  
+                projectedVertices[j].x *= (currentWidth / 2.0); 
+                projectedVertices[j].y *= (currentHeight / 2.0); 
+                projectedVertices[j].x += (currentWidth / 2.0);
+                projectedVertices[j].y += (currentHeight / 2.0);  
             } 
             // Package the resulting data into triangle_t for rendering
             triangle_t result; 
@@ -360,16 +366,16 @@ void update(void) {
 
 
 void render(void) {
+    RenderingMode currentRenderingMode = getRenderingMode();
     clear_framebuffer(COLOR_BLACK);
     clear_Zbuffer();
-
     draw_grid(GRID_SPACING, COLOR_LIGHT_GRAY);         
     
     // draw all of the triangles residing in g_renderQueue based on the rendering mode selected  
     for(int i = 0; i < g_triangleCounter; i++) {
         triangle_t triangle = g_renderQueue[i];
         
-       if(g_renderingMode == RENDER_TEXTURED || g_renderingMode == RENDER_TEXTURED_WIRE) {
+       if(currentRenderingMode == RENDER_TEXTURED || currentRenderingMode == RENDER_TEXTURED_WIRE) {
            draw_textured_triangle(
                 triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w, triangle.texcoords[0].u, triangle.texcoords[0].v,
                 triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w,triangle.texcoords[1].u, triangle.texcoords[1].v,
@@ -378,17 +384,17 @@ void render(void) {
                 );        
        }
         
-        if(g_renderingMode == RENDER_WIRE_VERTEX) {
+        if(currentRenderingMode == RENDER_WIRE_VERTEX) {
             draw_rect(triangle.points[0].x - 3, triangle.points[0].y - 3, 4, 4, COLOR_RED); 
             draw_rect(triangle.points[1].x - 3, triangle.points[1].y - 3, 4, 4, COLOR_RED); 
             draw_rect(triangle.points[2].x - 3, triangle.points[2].y - 3, 4, 4, COLOR_RED);
         }
 
-        if(g_renderingMode == RENDER_SOLID) {
+        if(currentRenderingMode == RENDER_SOLID) {
             draw_solid_triangle(&triangle); 
         }
 
-        if(g_renderingMode == RENDER_WIRE || g_renderingMode == RENDER_WIRE_VERTEX || g_renderingMode == RENDER_SOLID_WIRE || g_renderingMode == RENDER_TEXTURED_WIRE) {
+        if(currentRenderingMode == RENDER_WIRE || currentRenderingMode == RENDER_WIRE_VERTEX || currentRenderingMode == RENDER_SOLID_WIRE || currentRenderingMode == RENDER_TEXTURED_WIRE) {
             draw_triangle(
                 triangle.points[0].x, triangle.points[0].y,
                 triangle.points[1].x, triangle.points[1].y,
@@ -402,8 +408,6 @@ void render(void) {
 
 
 void free_resources(void) {
-    if(framebuffer != NULL) free(framebuffer);
-    if(g_Zbuffer != NULL) free(g_Zbuffer);
     if(g_renderQueue != NULL) free(g_renderQueue);   
     array_free(mesh.faces);
     array_free(mesh.verts);
