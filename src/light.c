@@ -1,9 +1,11 @@
 #include "light.h"
 
-light_t global_light = {
-    .direction = {0, 0, 1}
-};
+static light_t light;
 
+
+void initLight(vec3_t direction) {
+        light.direction = direction;
+}
 
 uint32_t light_apply_intensity(uint32_t original_color, float percentage) {
    
@@ -37,16 +39,20 @@ uint32_t light_apply_intensity_bitwise(uint32_t original_color, float percentage
     return res;   
 }
 
-// shift the original position by unit 
-void adjust_global_light_pos(float x, float y, float z) {
-     global_light.direction.x += x;
-     global_light.direction.y += y;
-     global_light.direction.z += z; 
+// shift the original position by x, y, z units 
+void adjustLightPos(float x, float y, float z) {
+     light.direction.x += x;
+     light.direction.y += y;
+     light.direction.z += z; 
 };
 
 // overwrite position of the global light source
-void set_global_light_pos(float x, float y, float z) {
-     global_light.direction.x = x;
-     global_light.direction.y = y;
-     global_light.direction.z = z; 
+void setLightPos(float x, float y, float z) {
+     light.direction.x = x;
+     light.direction.y = y;
+     light.direction.z = z; 
 };
+
+vec3_t getLightDirection(void) {
+    return light.direction; 
+}

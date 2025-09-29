@@ -95,6 +95,7 @@ bool setup(void) {
 			printf("Error: unable to open provided texture.\n Loading default..."); 
 			mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
 	}
+    initLight((vec3_t) {0, 0, 1}); 
     // Set default config here
     setRenderingMode(RENDER_WIRE_VERTEX);
     setCullMethod(CULL_BACKFACE);
@@ -351,7 +352,8 @@ void update(void) {
 
         // Lighting
         if(currentLight == LIGHT_BASIC) {
-                float ray_alignment = -vec3_dot(&normal, &global_light.direction); 
+                vec3_t lightDirection = getLightDirection();
+                float ray_alignment = -vec3_dot(&normal, &lightDirection); 
                 currentFace.color = light_apply_intensity(currentFace.color, ray_alignment); 
         }
 

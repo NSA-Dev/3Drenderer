@@ -4,15 +4,14 @@
 #include <stdint.h>
 #include "vector.h"
 
-
 typedef struct {
-    vec3_t direction; 
+    vec3_t direction;
 } light_t;
 
-extern light_t global_light;
-
+void initLight(vec3_t direction); 
 uint32_t light_apply_intensity(uint32_t original_color, float percentage);
 uint32_t light_apply_intensity_bitwise(uint32_t original_color, float percentage);
-void adjust_global_ight_pos(float x, float y, float z);
-void set_global_light_pos(float x, float y, float z); 
+void adjustLightPos(float x, float y, float z);
+void setLightPos(float x, float y, float z);
+vec3_t getLightDirection(void); 
 #endif
