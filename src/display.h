@@ -49,6 +49,8 @@ LightMethod getLightMethod(void);
 CullMethod getCullMethod(void);
 RenderingMode getRenderingMode(void);
 float* getZbufferPtr(void);
+float getZbufferAt(int x, int y);
+void updateZbufferAt(int x, int y, float val);
 bool renderTexture(void);
 bool renderWire(void);
 bool renderVerts(void);

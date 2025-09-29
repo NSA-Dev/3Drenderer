@@ -210,7 +210,20 @@ RenderingMode getRenderingMode(void) {
 }
 
 float* getZbufferPtr(void) {
-    return Zbuffer; 
+    return Zbuffer; // raw Zbuffer access, here for ease of access but should be avoided 
+}
+
+float getZbufferAt(int x, int y) {
+    if(x < 0 || x >= win_w || y < 0 || y >= win_h) {
+        return 1.0; 
+    }
+    return Zbuffer[(win_w * y) + x]; 
+}
+void updateZbufferAt(int x, int y, float val) {
+    if(x < 0 || x >= win_w || y < 0 || y >= win_h) {
+        return; 
+    }
+    Zbuffer[(win_w * y) + x] = val; 
 }
 
 bool renderTexture(void) {

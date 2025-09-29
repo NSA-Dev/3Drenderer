@@ -4,6 +4,8 @@
 #include "triangle.h"
 #include "display.h"
 #include "swap.h"
+
+// FIX ME: Move away from direct buffer addressing via getZbuffer() and return its position instead
  
 
 void fill_upper_half(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
@@ -187,7 +189,6 @@ void draw_solid_triangle(triangle_t* triangle) {
 }
 
 void draw_triangle_pixel(int x, int y, uint32_t color, vec4_t* vert_a, vec4_t* vert_b, vec4_t* vert_c) {
-    int windowWidth = getWindowWidth();
     float interW_inverted; // used for depth calculations  
 	// package xy compononets for barycentric weights computation
 	vec2_t a_xy = vec2_from_vec4(vert_a);
@@ -201,15 +202,14 @@ void draw_triangle_pixel(int x, int y, uint32_t color, vec4_t* vert_a, vec4_t* v
 	float gamma = weights.z;
 	
 	interW_inverted = (1 / vert_a->w) * alpha + (1 / vert_b->w) * beta + (1 / vert_c->w) * gamma;
-	int pixelPos = (windowWidth * y) + x; // pre-compute current pixel position on the screen
 	// adjust 1/w so that closer pixels have smaller component value
 	interW_inverted = 1.0 - interW_inverted;
 	
 	// draw & update Z-buff only if depth is less then previous 
-	if(interW_inverted < getZbufferPtr()[pixelPos]) {
+	if(interW_inverted < getZbufferAt(x, y)) {
 		draw_pixel(x, y, color);
 		// update Z buffer at a current position with the calculated 1/w
-		getZbufferPtr()[pixelPos]  = interW_inverted; 
+		updateZbufferAt(x, y, interW_inverted); 
 	}   
 }
 
@@ -259,7 +259,6 @@ void draw_texel(
         float*  u0, float* v0, float* u1, float* v1,
         float* u2, float* v2 
 ) {
-    int windowWidth = getWindowWidth();
 	// package xy compononets for barycentric weights computation
 	vec2_t a_xy = vec2_from_vec4(a);
 	vec2_t b_xy = vec2_from_vec4(b);
@@ -297,20 +296,18 @@ void draw_texel(
 	   Since fill conventions, rasterization rules, subpixel precision are not handled properly. 
 	*/
 	
-	int pixelPos = (windowWidth * y) + x; // pre-compute current pixel position on the screen 
 	
 	// adjust 1/w so that closer pixels have smaller component value
 	interW_inverted = 1.0 - interW_inverted; 
 	
 	// draw & update Z-buff only if depth is less then previous 
-	if(interW_inverted < getZbufferPtr()[pixelPos]) {
+	if(interW_inverted < getZbufferAt(x, y)) {
 		
 		// clamp the array index before passing to the draw_pixel % (texture_width * texture_height)
 		int texIndex = ((texture_width * textureY) + textureX) ; 
 		draw_pixel(x, y, mesh_texture[texIndex]);
-	
 		// update Z buffer at a current position with the calculated 1/w
-		getZbufferPtr()[pixelPos]  = interW_inverted; 
+		updateZbufferAt(x, y, interW_inverted); 
 	} 
 }
 
