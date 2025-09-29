@@ -9,8 +9,8 @@ static SDL_Renderer* renderer = NULL;
 static uint32_t* framebuffer = NULL;
 static float* Zbuffer = NULL; 
 static SDL_Texture* framebuffer_texture = NULL;
-static int win_w = 800;    // fallback value
-static int win_h = 600;    // fallback value
+static int win_w = DEFAULT_WIDTH;    // fallback value
+static int win_h = DEFAULT_HEIGHT;    // fallback value
 
 bool init_window(void) {
 
@@ -28,10 +28,10 @@ bool init_window(void) {
 
     /* Query display's video mode from main(0) display */
     SDL_DisplayMode display_mode;
-    SDL_GetCurrentDisplayMode(0, &display_mode);
-    win_w = display_mode.w;
-    win_h = display_mode.h;
-
+    if(!SDL_GetCurrentDisplayMode(0, &display_mode)) {
+        win_w = display_mode.w;
+        win_h = display_mode.h;
+    }
     /* Handle window creation */
     window = SDL_CreateWindow(
             NULL,                   // winTitle

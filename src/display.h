@@ -9,6 +9,8 @@
 #define FTT (1000 / FPS)
 #define DEFAULT_CAM_DEPTH 5
 #define GRID_SPACING 10
+#define DEFAULT_WIDTH 800
+#define DEFAULT_HEIGHT 600
 
 typedef enum {
 	RENDER_WIRE,
