@@ -119,8 +119,7 @@ void process_input(void) {
                     is_running = false;
                     break;
                 }
-                if(currentControlMode == MANUAL) {    
-                // Manual camera control
+                if(currentControlMode == MANUAL) {
                 if (event.key.keysym.sym == SDLK_LEFT) {
                     mesh.rotation.y += MESH_ROTATION_FACTOR * g_deltaTime;
                     break;
@@ -137,7 +136,6 @@ void process_input(void) {
                     mesh.rotation.x -= MESH_ROTATION_FACTOR * g_deltaTime;
                     break;
                 }
-                // Zoom  TODO add camera control limits
                 if(event.key.keysym.sym == SDLK_KP_PLUS) {
                     mesh.translation.z += 1 * g_deltaTime;
                     break;
@@ -147,49 +145,43 @@ void process_input(void) {
                     break;
                 } 
                 if(event.key.keysym.sym == SDLK_a) {
-                    g_camera.yaw += CAM_YAW_FACTOR * g_deltaTime;
+                    adjustCameraYaw(CAM_YAW_FACTOR * g_deltaTime);
                     break;
                 } 
                 if(event.key.keysym.sym == SDLK_d) {
-                    g_camera.yaw -= CAM_YAW_FACTOR * g_deltaTime;
+                    adjustCameraYaw(-CAM_YAW_FACTOR * g_deltaTime);
                     break;
                 } 
                 if(event.key.keysym.sym == SDLK_w) {
-                    g_camera.forwardVelocity = vec3_mul(&g_camera.direction, 
-                                        CAM_VELOCITY_FACTOR * g_deltaTime);
-                    g_camera.position = vec3_add(&g_camera.position, 
-                                                &g_camera.forwardVelocity);
+                    cameraMoveForward(CAM_VELOCITY_FACTOR * g_deltaTime);
                     break;  
                 }
                 if(event.key.keysym.sym == SDLK_s) {
-                    g_camera.forwardVelocity = vec3_mul(&g_camera.direction, 
-                                        CAM_VELOCITY_FACTOR * g_deltaTime);
-                    g_camera.position = vec3_sub(&g_camera.position, 
-                                                &g_camera.forwardVelocity);
+                    cameraMoveBackward(CAM_VELOCITY_FACTOR * g_deltaTime); 
                     break;   
                 }
                 if(event.key.keysym.sym == SDLK_KP_8) {
-                    g_camera.position.z += CAM_POS_FACTOR * g_deltaTime;
+                    adjustCameraPositionZ(CAM_POS_FACTOR * g_deltaTime);
                     break;
                 } 
                 if(event.key.keysym.sym == SDLK_KP_2) {
-                    g_camera.position.z -= CAM_POS_FACTOR * g_deltaTime;
+                    adjustCameraPositionZ(-CAM_POS_FACTOR * g_deltaTime);
                     break;
                 } 
                 if(event.key.keysym.sym == SDLK_KP_4) {
-                    g_camera.position.x += CAM_POS_FACTOR * g_deltaTime;
+                    adjustCameraPositionX(CAM_POS_FACTOR * g_deltaTime);
                     break;
                 } 
                 if(event.key.keysym.sym == SDLK_KP_6) {
-                    g_camera.position.x -= CAM_POS_FACTOR * g_deltaTime;
+                    adjustCameraPositionX(-CAM_POS_FACTOR * g_deltaTime);
                     break;
                 } 
                 if(event.key.keysym.sym == SDLK_KP_9) {
-                    g_camera.position.y += CAM_POS_FACTOR * g_deltaTime;
+                    adjustCameraPositionY(CAM_POS_FACTOR * g_deltaTime);
                     break;
                 } 
                 if(event.key.keysym.sym == SDLK_KP_3) {
-                    g_camera.position.y -= CAM_POS_FACTOR * g_deltaTime;
+                    adjustCameraPositionY(-CAM_POS_FACTOR * g_deltaTime);
                     break;
                 } 
                 // stretch the mesh
@@ -259,6 +251,7 @@ void process_input(void) {
     
 }
 
+// HERE: Refactor CAMERA GLOBALS IN UPDATE
 void update(void) { 
     // Synchronize frames before proceeding
     int elapsedTime = SDL_GetTicks() - previous_frame_time; 
@@ -284,14 +277,17 @@ void update(void) {
     // Set up default camera  target (looking at the positive z-axis)
     vec3_t targetPoint = { 0, 0, 1 }; 
     vec3_t upDirection = { 0, 1, 0 };  
-    mat4_t cameraYawRotation = mat4_make_rotation_y(g_camera.yaw);
+    mat4_t cameraYawRotation = mat4_make_rotation_y(getCameraYaw());
     vec4_t vec4_targetPoint = vec4_from_vec3(&targetPoint); 
     vec4_t mat4_product = mat4_mult_vec4(&cameraYawRotation, &vec4_targetPoint); 
-    vec3_t currentDirection = vec3_from_vec4(&mat4_product); 
-    g_camera.direction = currentDirection;
-    targetPoint = vec3_add(&g_camera.position, &g_camera.direction); 
+    vec3_t currentDirection = vec3_from_vec4(&mat4_product);
+    setCameraDirection(currentDirection);
+    vec3_t cameraPos, cameraDir;
+    cameraPos = getCameraPosition();
+    cameraDir = getCameraDirection();  
+    targetPoint = vec3_add(&cameraPos, &cameraDir); 
     // Create the view matrix
-    g_viewMatrix = mat4_look_at(g_camera.position, targetPoint, upDirection); 
+    g_viewMatrix = mat4_look_at(cameraPos, targetPoint, upDirection); 
     
     // Create scale, rotation and translation matrices 
     mat4_t scaleMatrix = mat4_make_scale(mesh.scale.x, mesh.scale.y, mesh.scale.z);
