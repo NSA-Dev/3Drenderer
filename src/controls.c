@@ -9,3 +9,4 @@ void setControlMode(ControlMode mode) {
 ControlMode getControlMode(void) {
     return controlMode; 
 }
+

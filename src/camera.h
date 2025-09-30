@@ -3,7 +3,8 @@
 #include "vector.h"
 
 #define CAM_POS_FACTOR 2.5
-#define CAM_YAW_FACTOR 1.0 
+#define CAM_YAW_FACTOR 1.0
+#define CAM_PITCH_FACTOR 1.0 
 #define CAM_VELOCITY_FACTOR 5.0
 
 typedef struct {
@@ -14,7 +15,7 @@ typedef struct {
 	float pitch;
 } camera_t; 
 
-void initCamera(void); 
+void initCamera(vec3_t pos, vec3_t dir); 
 void adjustCameraYaw(float angle);
 void adjustCameraPitch(float angle);
 void adjustCameraPositionX(float factor);
@@ -26,6 +27,7 @@ void setCameraDirection(vec3_t v);
 void cameraMoveForward(float factor);
 void cameraMoveBackward(float factor);
 float getCameraYaw(void);
+float getCameraPitch(void);
 vec3_t getCameraDirection(void);
 vec3_t getCameraPosition(void);   
 #endif

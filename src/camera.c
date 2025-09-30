@@ -1,16 +1,11 @@
 #include "camera.h"
 
 
-static camera_t camera = {
-	.position = {0, 0, 0},
-	.direction = {0, 0, 1},
-	.forwardVelocity = {0, 0, 0},
-	.yaw = 0.0
-}; 
+static camera_t camera;
 
-void initCamera(void) {
-	camera.position = (vec3_t) {0, 0, 0};
-	camera.direction = (vec3_t) {0, 0, 1}; 
+void initCamera(vec3_t pos, vec3_t dir) {
+	camera.position = pos;
+	camera.direction = dir; 
 	camera.forwardVelocity = (vec3_t) {0, 0, 0};
 	camera.yaw = 0.0;
 	camera.pitch = 0.0;   
@@ -60,6 +55,10 @@ void cameraMoveBackward(float factor) {
 
 float getCameraYaw(void) {
 	return camera.yaw;
+}
+
+float getCameraPitch(void) {
+	return camera.pitch; 
 }
 
 vec3_t getCameraDirection(void) {

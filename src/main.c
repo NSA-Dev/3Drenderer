@@ -95,7 +95,11 @@ bool setup(void) {
 			printf("Error: unable to open provided texture.\n Loading default..."); 
 			mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
 	}
-    initLight((vec3_t) {0, 0, 1}); 
+    vec3_t lightOrigin = {0, 0, 1};
+    vec3_t camOrigin = {0, 0, 0};
+    vec3_t camDir = {0, 0, 1}; // look at positive Z
+    initLight(lightOrigin);
+    initCamera(camOrigin, camDir);  
     // Set default config here
     setRenderingMode(RENDER_WIRE_VERTEX);
     setCullMethod(CULL_BACKFACE);
@@ -119,7 +123,8 @@ void process_input(void) {
                     is_running = false;
                     break;
                 }
-                if(currentControlMode == MANUAL) {
+                // Mesh controls
+                if(currentControlMode == MESH) {
                 if (event.key.keysym.sym == SDLK_LEFT) {
                     mesh.rotation.y += MESH_ROTATION_FACTOR * g_deltaTime;
                     break;
@@ -136,19 +141,30 @@ void process_input(void) {
                     mesh.rotation.x -= MESH_ROTATION_FACTOR * g_deltaTime;
                     break;
                 }
+                // stretch the mesh
+                if(event.key.keysym.sym == SDLK_q) {
+                    mesh.scale.x += MESH_SCALE_FACTOR * g_deltaTime;
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_e) {
+                    mesh.scale.x -= MESH_SCALE_FACTOR * g_deltaTime;
+                    break;
+                } 
+                }
+                // Camera controls 
                 if(event.key.keysym.sym == SDLK_KP_PLUS) {
-                    mesh.translation.z += 1 * g_deltaTime;
+                    adjustCameraPitch(CAM_PITCH_FACTOR * g_deltaTime);
                     break;
                 } 
                 if(event.key.keysym.sym == SDLK_KP_MINUS) {
-                    mesh.translation.z -= 1 * g_deltaTime;
-                    break;
-                } 
-                if(event.key.keysym.sym == SDLK_a) {
-                    adjustCameraYaw(CAM_YAW_FACTOR * g_deltaTime);
+                    adjustCameraPitch(-CAM_PITCH_FACTOR * g_deltaTime);
                     break;
                 } 
                 if(event.key.keysym.sym == SDLK_d) {
+                    adjustCameraYaw(CAM_YAW_FACTOR * g_deltaTime);
+                    break;
+                } 
+                if(event.key.keysym.sym == SDLK_a) {
                     adjustCameraYaw(-CAM_YAW_FACTOR * g_deltaTime);
                     break;
                 } 
@@ -168,11 +184,11 @@ void process_input(void) {
                     adjustCameraPositionZ(-CAM_POS_FACTOR * g_deltaTime);
                     break;
                 } 
-                if(event.key.keysym.sym == SDLK_KP_4) {
+                if(event.key.keysym.sym == SDLK_KP_6) {
                     adjustCameraPositionX(CAM_POS_FACTOR * g_deltaTime);
                     break;
                 } 
-                if(event.key.keysym.sym == SDLK_KP_6) {
+                if(event.key.keysym.sym == SDLK_KP_4) {
                     adjustCameraPositionX(-CAM_POS_FACTOR * g_deltaTime);
                     break;
                 } 
@@ -184,16 +200,6 @@ void process_input(void) {
                     adjustCameraPositionY(-CAM_POS_FACTOR * g_deltaTime);
                     break;
                 } 
-                // stretch the mesh
-                if(event.key.keysym.sym == SDLK_q) {
-                    mesh.scale.x += MESH_SCALE_FACTOR * g_deltaTime;
-                    break;
-                } 
-                if(event.key.keysym.sym == SDLK_e) {
-                    mesh.scale.x -= MESH_SCALE_FACTOR * g_deltaTime;
-                    break;
-                } 
-                }
                 // Rendering modes
                 if(event.key.keysym.sym == SDLK_F1) {
                     setRenderingMode(RENDER_WIRE);
@@ -236,7 +242,7 @@ void process_input(void) {
                 }
                 if(event.key.keysym.sym == SDLK_F9) {
                 if(currentControlMode == SPIN) {
-                        setControlMode(MANUAL);
+                        setControlMode(MESH);
                         break;
                     } else {
                         setControlMode(SPIN);
@@ -251,7 +257,7 @@ void process_input(void) {
     
 }
 
-// HERE: Refactor CAMERA GLOBALS IN UPDATE
+// TEST: if the camera math actually checks out (dir and pitch vector addition)
 void update(void) { 
     // Synchronize frames before proceeding
     int elapsedTime = SDL_GetTicks() - previous_frame_time; 
@@ -276,11 +282,16 @@ void update(void) {
 
     // Set up default camera  target (looking at the positive z-axis)
     vec3_t targetPoint = { 0, 0, 1 }; 
-    vec3_t upDirection = { 0, 1, 0 };  
+    vec3_t upDirection = { 0, 1, 0 };
+    // Update camera direction with current pitch and yaw
     mat4_t cameraYawRotation = mat4_make_rotation_y(getCameraYaw());
-    vec4_t vec4_targetPoint = vec4_from_vec3(&targetPoint); 
-    vec4_t mat4_product = mat4_mult_vec4(&cameraYawRotation, &vec4_targetPoint); 
-    vec3_t currentDirection = vec3_from_vec4(&mat4_product);
+    mat4_t cameraPitchRotation = mat4_make_rotation_x(getCameraPitch());
+    vec4_t vec4_targetPoint = vec4_from_vec3(&targetPoint);
+    vec4_t directionProduct = mat4_mult_vec4(&cameraYawRotation, &vec4_targetPoint);
+    vec4_t pitchProduct = mat4_mult_vec4(&cameraPitchRotation, &vec4_targetPoint);
+    vec3_t vec3_directionProduct = vec3_from_vec4(&directionProduct);
+    vec3_t vec3_pitchProduct = vec3_from_vec4(&pitchProduct);
+    vec3_t  currentDirection = vec3_add(&vec3_directionProduct, &vec3_pitchProduct); 
     setCameraDirection(currentDirection);
     vec3_t cameraPos, cameraDir;
     cameraPos = getCameraPosition();
