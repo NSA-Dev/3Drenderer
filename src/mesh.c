@@ -4,17 +4,16 @@
 #include "mesh.h"
 #include "array.h"
 #include "colors.h"
+#include "upng.h"
 
-mesh_t mesh = {
-    .verts = NULL,
-    .faces = NULL,
-    .rotation = {0, 0, 0},
-    .scale ={1.0, 1.0, 1.0},  // neutral scale factor  
-    .translation = {0, 0, 0}
+#define MESH_LIMIT 10
 
-};
 
-vec3_t cube_verts[N_CUBE_VERTS] = {
+
+static mesh_t meshes[MESH_LIMIT];
+static int meshCount = 0; 
+
+static vec3_t cube_verts[N_CUBE_VERTS] = {
     {.x = -1, .y = -1, .z = -1}, // 1
     {.x = -1, .y =  1, .z = -1}, // 2
     {.x =  1, .y =  1, .z = -1}, // 3
@@ -26,7 +25,7 @@ vec3_t cube_verts[N_CUBE_VERTS] = {
 }; 
 
 // This one holds vertex indexes to select from mesh_verts[] 
-face_t cube_faces[N_CUBE_FACES] = {
+static face_t cube_faces[N_CUBE_FACES] = {
     // front
     { .a = 1, .b = 2, .c = 3, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
     { .a = 1, .b = 3, .c = 4, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
@@ -47,19 +46,32 @@ face_t cube_faces[N_CUBE_FACES] = {
     { .a = 6, .b = 1, .c = 4, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF }
 };
 
-void load_cube_mesh(void) {
-    for (int i = 0; i < N_CUBE_VERTS; i++) {
-        vec3_t cube_v = cube_verts[i];
-        array_push(mesh.verts, cube_v); 
-    }
+void loadDefaultCube(void) {
+    if(meshCount < MESH_LIMIT) {
+        mesh_t cubeMesh = {
+        .verts = NULL,
+        .faces = NULL,
+        .rotation = {0, 0, 0},
+        .scale ={1.0, 1.0, 1.0},  // neutral scale factor  
+        .translation = {0, 0, 0}
+        };
+        // FIX ME: Push default mesh into global mesh Array
+        for (int i = 0; i < N_CUBE_VERTS; i++) {
+            vec3_t cube_v = cube_verts[i];
+            array_push(cubeMesh.verts, cube_v); 
+        }
 
-    for (int i = 0; i < N_CUBE_FACES; i++) {
-        face_t cube_f = cube_faces[i];
-        array_push(mesh.faces, cube_f); 
+        for (int i = 0; i < N_CUBE_FACES; i++) {
+            face_t cube_f = cube_faces[i];
+            array_push(cubeMesh.faces, cube_f); 
+        }
+        cubeMesh.texture = (upng_t*) fetchDefaultTexture();
+        meshes[meshCount++] = cubeMesh;
     }
+    printf("Unable to load default cube. Mesh buffer is full\n"); 
 }
 
-bool load_mesh_data(char* fname) {
+bool loadObjMeshData(char* fname, mesh_t* mesh) {
 	
 	// store VT in an array
     FILE* fp;
@@ -77,7 +89,7 @@ bool load_mesh_data(char* fname) {
         if(!strncmp(str, "v ", 2)) {
             vec3_t vector;
             sscanf(str, "v %f %f %f", &vector.x, &vector.y, &vector.z);
-            array_push(mesh.verts, vector);
+            array_push(mesh->verts, vector);
         }
         // UV data expects: "vt 1.000000 0.000000"
         if(!strncmp(str, "vt ", 3)) {
@@ -106,11 +118,72 @@ bool load_mesh_data(char* fname) {
                 .a_uv = uvCoords[texture_i[0] - 1],
                 .b_uv = uvCoords[texture_i[1] - 1],
                 .c_uv = uvCoords[texture_i[2] - 1]
-            };
-
-            array_push(mesh.faces, face); 
+            }; 
+            array_push(mesh->faces, face); 
         }
     }
     array_free(uvCoords); 
     return true; 
+}
+
+
+bool loadMesh(char* objFileName, char* pngTextureFileName, vec3_t scale, vec3_t translation, vec3_t rotation) {
+    if(meshCount < MESH_LIMIT) {
+        if(loadObjMeshData(objFileName, &meshes[meshCount])) {
+            if(!loadMeshTexture(pngTextureFileName, &meshes[meshCount])) {
+                printf("Unable to load texture: %s << loading default texture\n", pngTextureFileName);
+                upng_t* fallbackTexture = (upng_t*) fetchDefaultTexture();
+                meshes[meshCount].texture = fallbackTexture;
+            };
+            meshes[meshCount].scale = scale;
+            meshes[meshCount].translation = translation;
+            meshes[meshCount].rotation = rotation;
+            meshCount++;
+            return true;
+        }
+        printf("Unable to load mesh: %s << Skipped\n", objFileName);
+        return false; 
+    }
+    printf("Mesh limit exceeded\n%s is skipped.\n", objFileName);
+    return false;    
+}
+
+bool loadMeshTexture(char* pngTexFileName, mesh_t* mesh) {	
+	upng_t* png_texture = upng_new_from_file(pngTexFileName);
+	
+	if (png_texture != NULL) {
+		upng_decode(png_texture);
+		if(upng_get_error(png_texture) == UPNG_EOK) {
+			mesh->texture = (upng_t*) upng_get_buffer(png_texture);
+			return true; 
+		}
+	}
+	return false; 
+}
+
+int getMeshCount(void) {
+    return meshCount; 
+}
+
+mesh_t* getMeshPtr(int index) {
+    return &meshes[index];
+}
+
+void freeMeshes(void) {
+        for(int i = 0; i < meshCount; i++) {
+            upng_free(meshes[i].texture);
+            array_free(meshes[i].faces);
+            array_free(meshes[i].verts); 
+        }
+}
+
+
+int getTotalFaceCount(void) {
+    int total = 0; 
+    if(meshCount > 0) {
+        for(int i = 0; i < meshCount; i++) {
+            total += array_length(meshes[i].faces);
+        }
+    }
+    return total; 
 }

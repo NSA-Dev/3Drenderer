@@ -27,9 +27,12 @@ bool is_running = false;
 int previous_frame_time = 0; // ms
 float g_deltaTime = 0; 
 mat4_t proj_matrix;
-char modelPath[] = "./assets/crab.obj"; 
-char texturePath[] = "./assets/crab.png"; 
 
+typedef struct {
+    vec3_t scale;
+    vec3_t translation;
+    vec3_t rotation;
+} coords_t;
  
 bool setup(void);
 void process_input(void);
@@ -59,20 +62,39 @@ int main(void) {
 
 
 bool setup(void) {
-   // if unable to load custom model, load default cube and print msg
-    if(!load_mesh_data(modelPath)) {
+
+    // TODO: get rid of these globals after testing is done 
+    // Test variables
+    char modelA_path[] = "./assets/crab.obj"; 
+    char modelA_texturePath[] = "./assets/crab.png"; 
+    char modelB_path[] = "./assets/f22.obj"; 
+    char modelB_texturePath[] = "./assets/f22.png";
+    
+    coords_t modA_pos, modB_pos; 
+    modA_pos.scale = vec3_new(1, 1, 1);
+    modA_pos.translation = vec3_new(-3, 0, +8);
+    modA_pos.rotation = vec3_new(0, 0, 0);
+    modB_pos.scale = vec3_new(1, 1, 1);
+    modB_pos.translation = vec3_new(+3, 0, +8); 
+    modB_pos.rotation = vec3_new(0, 0, 0);   
+
+
+    // Multiple assets test
+    if(!loadMesh(modelA_path, modelA_texturePath, modA_pos.scale, modA_pos.translation, modA_pos.rotation)) {
         printf("Error: unable to read specified .obj file.\n");
         printf("Loading default model...\n");  
-        load_cube_mesh(); 
-        // load default cube texture
-        mesh_texture = (uint32_t*)REDBRICK_TEXTURE; // mesh_texture (global) - defined in texture.h 
-        texture_width = 64;
-        texture_height = 64; 
-    }   
+        loadDefaultCube(); 
+    }
+    if(!loadMesh(modelB_path, modelB_texturePath, modB_pos.scale, modB_pos.translation, modB_pos.rotation)) {
+        printf("Error: unable to read specified .obj file.\n");
+        printf("Loading default model...\n");  
+        loadDefaultCube(); 
+    }  
 
     // Allocate the draw list for all polys << Can eat all of the heap
-    g_polyCount = array_length(mesh.faces);
-    g_renderQueue = (triangle_t*)malloc(sizeof(triangle_t) * g_polyCount); 
+    // CHECK may be source of errors 
+    g_polyCount = getTotalFaceCount();
+    g_renderQueue = (triangle_t*)malloc(sizeof(triangle_t) * g_polyCount * 2); 
     if(!g_renderQueue) {
 		fprintf(stderr, "Error: not enough memory to process the model (polycount is too high).\n");
 		return false; 
@@ -90,11 +112,13 @@ bool setup(void) {
     // Initialize frustum planes with a point and a normal
     initFrustumPlanes(fov_x, fov_y, z_near, z_far);  
     
-    // .png Texture loading 
+    // .png Texture loading - OFF for testing
+    /*
     if(!load_png_textureData(texturePath)) {
 			printf("Error: unable to open provided texture.\n Loading default..."); 
 			mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
 	}
+    */
     vec3_t lightOrigin = {0, 0, 1};
     vec3_t camOrigin = {0, 0, 0};
     vec3_t camDir = {0, 0, 1}; // look at positive Z
@@ -123,7 +147,8 @@ void process_input(void) {
                     is_running = false;
                     break;
                 }
-                // Mesh controls
+                // Disabled due to multiple meshes Mesh controls
+                /*
                 if(currentControlMode == MESH) {
                 if (event.key.keysym.sym == SDLK_LEFT) {
                     mesh.rotation.y += MESH_ROTATION_FACTOR * g_deltaTime;
@@ -150,7 +175,7 @@ void process_input(void) {
                     mesh.scale.x -= MESH_SCALE_FACTOR * g_deltaTime;
                     break;
                 } 
-                }
+                }*/
                 // Camera controls 
                 if(event.key.keysym.sym == SDLK_KP_PLUS) {
                     adjustCameraPitch(CAM_PITCH_FACTOR * g_deltaTime);
@@ -226,10 +251,14 @@ void process_input(void) {
                     break;       
                 }    
                 if(event.key.keysym.sym == SDLK_F7) {
-                    if(mesh_texture != NULL) {
+                    // Disabled for Testing
+                    /*
+                    if(mesh_texture != NULL) {   
                         setRenderingMode(RENDER_TEXTURED);
-                        break;   
-                    }
+                        break;
+                    }*/
+                        setRenderingMode(RENDER_TEXTURED);
+                        break;
                 }
                 if(event.key.keysym.sym == SDLK_F8) { 
                 if(currentLightMethod == LIGHT_NONE) {
@@ -256,8 +285,6 @@ void process_input(void) {
     
     
 }
-
-// TEST: if the camera math actually checks out (dir and pitch vector addition)
 void update(void) { 
     // Synchronize frames before proceeding
     int elapsedTime = SDL_GetTicks() - previous_frame_time; 
@@ -267,18 +294,16 @@ void update(void) {
     }
     g_deltaTime = (SDL_GetTicks() - previous_frame_time) / 1000.0; 
     previous_frame_time = SDL_GetTicks(); 
+    
     // Poll current state
     CullMethod currentCulling = getCullMethod();
     LightMethod currentLight = getLightMethod();
     ControlMode currentControls = getControlMode();
     int currentWidth = getWindowWidth();
     int currentHeight = getWindowHeight();
+    int meshesLoaded = getMeshCount(); 
     // Reset the global triangle counter for this frame
     g_triangleCounter = 0; 
-
-    // Adjust mesh by default values (e.g. if spin mode is active) 
-    if(currentControls == SPIN) mesh.rotation.y += MESH_SPIN_FACTOR * g_deltaTime; 
-    mesh.translation.z = DEFAULT_CAM_DEPTH; 
 
     // Set up default camera  target (looking at the positive z-axis)
     vec3_t targetPoint = { 0, 0, 1 }; 
@@ -297,125 +322,134 @@ void update(void) {
     cameraPos = getCameraPosition();
     cameraDir = getCameraDirection();  
     targetPoint = vec3_add(&cameraPos, &cameraDir); 
-    // Create the view matrix
+    // Create the camera view matrix
     g_viewMatrix = mat4_look_at(cameraPos, targetPoint, upDirection); 
     
-    // Create scale, rotation and translation matrices 
-    mat4_t scaleMatrix = mat4_make_scale(mesh.scale.x, mesh.scale.y, mesh.scale.z);
-    mat4_t translationMatrix = mat4_make_translation(mesh.translation.x, mesh.translation.y, mesh.translation.z);
-    mat4_t rotationMatrix_x = mat4_make_rotation_x(mesh.rotation.x); 
-    mat4_t rotationMatrix_y = mat4_make_rotation_y(mesh.rotation.y); 
-    mat4_t rotationMatrix_z = mat4_make_rotation_z(mesh.rotation.z); 
+    // Proccess and update all currently loaded meshes
+    for(int meshIndex = 0; meshIndex < meshesLoaded; meshIndex++) {
+        mesh_t* mesh = getMeshPtr(meshIndex); 
+        // Adjust mesh by default values (e.g. if spin mode is active) 
+        if(currentControls == SPIN) mesh->rotation.y += MESH_SPIN_FACTOR * g_deltaTime; 
+        mesh->translation.z = DEFAULT_CAM_DEPTH; 
+        // Create scale, rotation and translation matrices 
+        mat4_t scaleMatrix = mat4_make_scale(mesh->scale.x, mesh->scale.y, mesh->scale.z);
+        mat4_t translationMatrix = mat4_make_translation(mesh->translation.x, mesh->translation.y, mesh->translation.z);
+        mat4_t rotationMatrix_x = mat4_make_rotation_x(mesh->rotation.x); 
+        mat4_t rotationMatrix_y = mat4_make_rotation_y(mesh->rotation.y); 
+        mat4_t rotationMatrix_z = mat4_make_rotation_z(mesh->rotation.z); 
 
-    // Main processing loop for all mesh faces
-    int faceCount = array_length(mesh.faces);  
-    for(int i = 0; i < faceCount; i++) {
-        face_t currentFace = mesh.faces[i];
-        // assign default color
-        currentFace.color = COLOR_GRAY;
+        // Main processing loop for all mesh faces
+        int faceCount = array_length(mesh->faces);  
+        for(int i = 0; i < faceCount; i++) {
+            face_t currentFace = mesh->faces[i];
+            // assign default color
+            currentFace.color = COLOR_GRAY;
 
-        // -1 offset already handled during .obj parsing 
-        vec3_t faceVertices[3]; 
-        faceVertices[0] = mesh.verts[currentFace.a]; 
-        faceVertices[1] = mesh.verts[currentFace.b]; 
-        faceVertices[2] = mesh.verts[currentFace.c]; 
+            // -1 offset already handled during .obj parsing 
+            vec3_t faceVertices[3]; 
+            faceVertices[0] = mesh->verts[currentFace.a]; 
+            faceVertices[1] = mesh->verts[currentFace.b]; 
+            faceVertices[2] = mesh->verts[currentFace.c]; 
 
-        // perform vertex transformations
-        vec4_t transformed[3];
-        for(int j = 0; j < 3; j++) {
-            vec4_t currentVertex = vec4_from_vec3(&faceVertices[j]);
-            g_worldMatrix = mat4_make_identity(); 
-            g_worldMatrix = mat4_mult_mat4(&scaleMatrix, &g_worldMatrix);
-            g_worldMatrix = mat4_mult_mat4(&rotationMatrix_z, &g_worldMatrix);
-            g_worldMatrix = mat4_mult_mat4(&rotationMatrix_y, &g_worldMatrix); 
-            g_worldMatrix = mat4_mult_mat4(&rotationMatrix_x, &g_worldMatrix);
-            g_worldMatrix = mat4_mult_mat4(&translationMatrix, &g_worldMatrix);
-            
-            currentVertex = mat4_mult_vec4(&g_worldMatrix, &currentVertex);
-            currentVertex = mat4_mult_vec4(&g_viewMatrix, &currentVertex); // translate to Camera space 
-            transformed[j] = currentVertex; 
-        }  
-        
-        // Compute normal from resulting transformed face vertices 
-        // Indexing: A - 0 ,  B - 1, C - 2
-        vec3_t A, B, C, AB, AC, normal;
-        A = vec3_from_vec4(&transformed[0]);
-        B = vec3_from_vec4(&transformed[1]);
-        C = vec3_from_vec4(&transformed[2]);
-        AB = vec3_sub(&B, &A);
-        AC = vec3_sub(&C, &A);
-        vec3_norm(&AB);
-        vec3_norm(&AC); 
-        normal = vec3_cross(&AB, &AC);
-        vec3_norm(&normal);
-        
-        // Perform Backface culling if needed
-        if(currentCulling == CULL_BACKFACE) {
-           vec3_t origin = { 0, 0, 0 };
-           vec3_t cameraRay = vec3_sub(&origin, &A);
-           float alignmentFactor = vec3_dot(&normal, &cameraRay);
-           if(alignmentFactor < 0) continue;  
-        }
-
-        // Lighting
-        if(currentLight == LIGHT_BASIC) {
-                vec3_t lightDirection = getLightDirection();
-                float ray_alignment = -vec3_dot(&normal, &lightDirection); 
-                currentFace.color = light_apply_intensity(currentFace.color, ray_alignment); 
-        }
-
-        // Perform clipping, same vertex orientation as in normal calculation
-        polygon_t polygon; 
-        vec3_t pA, pB, pC;
-        pA = vec3_from_vec4(&transformed[0]);
-        pB = vec3_from_vec4(&transformed[1]); 
-        pC = vec3_from_vec4(&transformed[2]);
-        // FIX ME: pass mesh_face.*_uv
-        polygon = createPolygon(&pA, &pB, &pC, currentFace.a_uv, currentFace.b_uv, currentFace.c_uv); 
-        clipPolygon(&polygon);
-        
-        // Break the clipped part into individual triangles
-        triangle_t clippedTriangles[CLIP_TRIANGLE_LIMIT];
-        int clippedCount;
-        
-        clippedCount = 0;
-        slicePolygon(&polygon, clippedTriangles, &clippedCount);  
-        // Loop through all resulting triangles
-        for(int t = 0; t < clippedCount; t++) {
-            triangle_t currentTriangle = clippedTriangles[t]; 
-            vec4_t projectedVertices[3];
+            // perform vertex transformations
+            vec4_t transformed[3];
             for(int j = 0; j < 3; j++) {
-                projectedVertices[j] = mat4_mult_vec4_project(&proj_matrix, &currentTriangle.points[j]);
-                // Flip verticaly respective to current coord system
-                projectedVertices[j].y *= -1; // check texture allignment
-                // Scale and translate into view
-                projectedVertices[j].x *= (currentWidth / 2.0); 
-                projectedVertices[j].y *= (currentHeight / 2.0); 
-                projectedVertices[j].x += (currentWidth / 2.0);
-                projectedVertices[j].y += (currentHeight / 2.0);  
-            } 
-            // Package the resulting data into triangle_t for rendering
-            triangle_t result; 
-            for(int i = 0; i < 3; i++) {
-                result.points[i].x = projectedVertices[i].x;
-                result.points[i].y = projectedVertices[i].y;
-                result.points[i].z = projectedVertices[i].z;
-                result.points[i].w = projectedVertices[i].w; 
-            }
-            result.texcoords[0].u = clippedTriangles[t].texcoords[0].u;
-            result.texcoords[0].v = clippedTriangles[t].texcoords[0].v;
-            result.texcoords[1].u = clippedTriangles[t].texcoords[1].u;
-            result.texcoords[1].v = clippedTriangles[t].texcoords[1].v;
-            result.texcoords[2].u = clippedTriangles[t].texcoords[2].u;
-            result.texcoords[2].v = clippedTriangles[t].texcoords[2].v;  
-            result.color = currentFace.color;
+                vec4_t currentVertex = vec4_from_vec3(&faceVertices[j]);
+                g_worldMatrix = mat4_make_identity(); 
+                g_worldMatrix = mat4_mult_mat4(&scaleMatrix, &g_worldMatrix);
+                g_worldMatrix = mat4_mult_mat4(&rotationMatrix_z, &g_worldMatrix);
+                g_worldMatrix = mat4_mult_mat4(&rotationMatrix_y, &g_worldMatrix); 
+                g_worldMatrix = mat4_mult_mat4(&rotationMatrix_x, &g_worldMatrix);
+                g_worldMatrix = mat4_mult_mat4(&translationMatrix, &g_worldMatrix);
+                
+                currentVertex = mat4_mult_vec4(&g_worldMatrix, &currentVertex);
+                currentVertex = mat4_mult_vec4(&g_viewMatrix, &currentVertex); // translate to Camera space 
+                transformed[j] = currentVertex; 
+            }  
             
-            // Send the result to the pipeline 
-            if(g_triangleCounter < MAX_TRIANGLES) {
-                g_renderQueue[g_triangleCounter++] = result; 
+            // Compute normal from resulting transformed face vertices 
+            // Indexing: A - 0 ,  B - 1, C - 2
+            vec3_t A, B, C, AB, AC, normal;
+            A = vec3_from_vec4(&transformed[0]);
+            B = vec3_from_vec4(&transformed[1]);
+            C = vec3_from_vec4(&transformed[2]);
+            AB = vec3_sub(&B, &A);
+            AC = vec3_sub(&C, &A);
+            vec3_norm(&AB);
+            vec3_norm(&AC); 
+            normal = vec3_cross(&AB, &AC);
+            vec3_norm(&normal);
+            
+            // Perform Backface culling if needed
+            if(currentCulling == CULL_BACKFACE) {
+            vec3_t origin = { 0, 0, 0 };
+            vec3_t cameraRay = vec3_sub(&origin, &A);
+            float alignmentFactor = vec3_dot(&normal, &cameraRay);
+            if(alignmentFactor < 0) continue;  
             }
-        }
-    }   
+
+            // Lighting
+            if(currentLight == LIGHT_BASIC) {
+                    vec3_t lightDirection = getLightDirection();
+                    float ray_alignment = -vec3_dot(&normal, &lightDirection); 
+                    currentFace.color = light_apply_intensity(currentFace.color, ray_alignment); 
+            }
+
+            // Perform clipping, same vertex orientation as in normal calculation
+            polygon_t polygon; 
+            vec3_t pA, pB, pC;
+            pA = vec3_from_vec4(&transformed[0]);
+            pB = vec3_from_vec4(&transformed[1]); 
+            pC = vec3_from_vec4(&transformed[2]);
+            // FIX ME: pass mesh_face.*_uv
+            polygon = createPolygon(&pA, &pB, &pC, currentFace.a_uv, currentFace.b_uv, currentFace.c_uv); 
+            clipPolygon(&polygon);
+            
+            // Break the clipped part into individual triangles
+            triangle_t clippedTriangles[CLIP_TRIANGLE_LIMIT];
+            int clippedCount;
+            
+            clippedCount = 0;
+            slicePolygon(&polygon, clippedTriangles, &clippedCount);  
+            // Loop through all resulting triangles
+            for(int t = 0; t < clippedCount; t++) {
+                triangle_t currentTriangle = clippedTriangles[t]; 
+                vec4_t projectedVertices[3];
+                for(int j = 0; j < 3; j++) {
+                    projectedVertices[j] = mat4_mult_vec4_project(&proj_matrix, &currentTriangle.points[j]);
+                    // Flip verticaly respective to current coord system
+                    projectedVertices[j].y *= -1; // check texture allignment
+                    // Scale and translate into view
+                    projectedVertices[j].x *= (currentWidth / 2.0); 
+                    projectedVertices[j].y *= (currentHeight / 2.0); 
+                    projectedVertices[j].x += (currentWidth / 2.0);
+                    projectedVertices[j].y += (currentHeight / 2.0);  
+                } 
+                // Package the resulting data into triangle_t for rendering
+                triangle_t result; 
+                for(int i = 0; i < 3; i++) {
+                    result.points[i].x = projectedVertices[i].x;
+                    result.points[i].y = projectedVertices[i].y;
+                    result.points[i].z = projectedVertices[i].z;
+                    result.points[i].w = projectedVertices[i].w; 
+                }
+                result.texcoords[0].u = clippedTriangles[t].texcoords[0].u;
+                result.texcoords[0].v = clippedTriangles[t].texcoords[0].v;
+                result.texcoords[1].u = clippedTriangles[t].texcoords[1].u;
+                result.texcoords[1].v = clippedTriangles[t].texcoords[1].v;
+                result.texcoords[2].u = clippedTriangles[t].texcoords[2].u;
+                result.texcoords[2].v = clippedTriangles[t].texcoords[2].v;  
+                result.color = currentFace.color;
+                result.texture = mesh->texture; 
+                
+                // Send the result to the pipeline 
+                if(g_triangleCounter < MAX_TRIANGLES) {
+                    g_renderQueue[g_triangleCounter++] = result; 
+                }
+            }
+        }   
+    } 
+
 }
 
 
@@ -434,7 +468,7 @@ void render(void) {
                 triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w, triangle.texcoords[0].u, triangle.texcoords[0].v,
                 triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w,triangle.texcoords[1].u, triangle.texcoords[1].v,
                 triangle.points[2].x, triangle.points[2].y, triangle.points[2].z, triangle.points[2].w,triangle.texcoords[2].u, triangle.texcoords[2].v,
-                &triangle.color // dummy variable to comply with the signature                 
+                triangle.texture               
                 );        
        }
         
@@ -462,8 +496,6 @@ void render(void) {
 
 
 void free_resources(void) {
-    if(g_renderQueue != NULL) free(g_renderQueue);   
-    array_free(mesh.faces);
-    array_free(mesh.verts);
-    upng_free(png_texture); 
+    if(g_renderQueue != NULL) free(g_renderQueue);
+    freeMeshes();
 }

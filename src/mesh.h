@@ -2,29 +2,28 @@
 #define MESH_H
 #include "vector.h"
 #include "triangle.h"
+#include "upng.h"
 
+// These declarations correspond to the fallback default model of the cube
 #define N_CUBE_VERTS 8
 #define N_CUBE_FACES (6 * 2) // each cube face (side) 2 triangles
-
-
-extern vec3_t cube_verts[N_CUBE_VERTS]; 
-// This one holds vertex indexes to select from mesh_verts[]
-extern face_t cube_faces[N_CUBE_FACES];
 
 typedef struct {
     vec3_t* verts;
     face_t* faces;
+    upng_t* texture;
     vec3_t rotation;
     vec3_t scale;
     vec3_t translation;  
 } mesh_t;
 
-// Global mesh
-extern mesh_t mesh;
-
 // Functions
-void load_cube_mesh(void);
-bool load_mesh_data(char* fname); // parse provided .obj file, 
-								 //  copy relevant data into the global mesh array 
-
+void loadDefaultCube(void);
+bool loadObjMeshData(char* fname, mesh_t* mesh);
+bool loadMesh(char* objFileName, char* pngTextureFileName, vec3_t scale, vec3_t translation, vec3_t rotation); 
+bool loadMeshTexture(char* pngTexFileName, mesh_t* mesh);
+int getMeshCount(void);
+mesh_t* getMeshPtr(int index);
+void freeMeshes(void);
+int getTotalFaceCount(void);  
 #endif

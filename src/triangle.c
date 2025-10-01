@@ -254,16 +254,18 @@ vec3_t computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p) {
 
 
 void draw_texel(
-        int x, int y, uint32_t* texture,
+        int x, int y, upng_t* texture,
         vec4_t* a, vec4_t* b, vec4_t* c,
         float*  u0, float* v0, float* u1, float* v1,
         float* u2, float* v2 
 ) {
-	// package xy compononets for barycentric weights computation
+    // TODO 
+    // fetch texture dimensions via upng
+    
+    // package xy compononets for barycentric weights computation
 	vec2_t a_xy = vec2_from_vec4(a);
 	vec2_t b_xy = vec2_from_vec4(b);
 	vec2_t c_xy = vec2_from_vec4(c); 
-	
 	
 	// compute weights relative to the point P (desired x & y screen pos)
     vec2_t pointP = {x, y};
@@ -286,10 +288,12 @@ void draw_texel(
 	// finally divide this back to undo the perspective distortion
 	interU /= interW_inverted;
 	interV /= interW_inverted; 
-
+    // Fetch texture dimensions
+    int textureWidth = upng_get_width(texture);
+    int textureHeight = upng_get_height(texture); 
     // scale uv to texture H x W 
-    int textureX = abs((int)(interU * texture_width)) % texture_width; // can clamp here by % texture_width
-    int textureY = abs((int)(interV * texture_height)) % texture_height; // can clamp here by % texture_height 
+    int textureX = abs((int)(interU * textureWidth)) % textureWidth; // can clamp here by % texture_width
+    int textureY = abs((int)(interV * textureHeight)) % textureHeight; // can clamp here by % texture_height 
 
 	/* Note the clamp method can produce artifacts, i.e 
 	   (Polygon gaps: empty cracks on polygons, especially on triangles sharing edges.)
@@ -302,10 +306,10 @@ void draw_texel(
 	
 	// draw & update Z-buff only if depth is less then previous 
 	if(interW_inverted < getZbufferAt(x, y)) {
-		
+		uint32_t* texBuffer = (uint32_t*) upng_get_buffer(texture); 
 		// clamp the array index before passing to the draw_pixel % (texture_width * texture_height)
-		int texIndex = ((texture_width * textureY) + textureX) ; 
-		draw_pixel(x, y, mesh_texture[texIndex]);
+		int texIndex = ((textureWidth * textureY) + textureX) ; 
+		draw_pixel(x, y, texBuffer[texIndex]);
 		// update Z buffer at a current position with the calculated 1/w
 		updateZbufferAt(x, y, interW_inverted); 
 	} 
@@ -316,7 +320,7 @@ void draw_textured_triangle(
         int x0, int y0, float z0, float w0, float u0, float v0,  
         int x1, int y1, float z1, float w1, float u1, float v1,       
         int x2, int y2, float z2, float w2, float u2, float v2,
-        uint32_t* texture 
+        upng_t* texture 
         ) {
 
     // only difference from regular draw_filledTriangle is going pixel by pixel 
