@@ -14,6 +14,10 @@ This is a work-in-progress software renderer built from scratch as a learning pr
 - **.OBJ File Parsing** (vertices, mesh data, UVs)  
 - **Perspective-Correct Texture Mapping**  
 - **Flat Shading**
+- **FPS Camera**
+- **View frustum culling**
+- **Backface Culling**
+- **Support for multiple meshes**
 
 ---
 
