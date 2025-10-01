@@ -17,10 +17,10 @@
 #include "clipping.h"
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 #define  PI_CONST 3.14159
-
+#define BUDGET 10000
 mat4_t g_viewMatrix;
 mat4_t g_worldMatrix; 
-triangle_t* g_renderQueue = NULL; 
+triangle_t g_renderQueue[BUDGET]; 
 uint32_t g_polyCount  = 0;
 uint32_t g_triangleCounter = 0; 
 bool is_running = false;
@@ -65,10 +65,10 @@ bool setup(void) {
 
     // TODO: get rid of these globals after testing is done 
     // Test variables
-    char modelA_path[] = "./assets/crab.obj"; 
-    char modelA_texturePath[] = "./assets/crab.png"; 
-    char modelB_path[] = "./assets/f22.obj"; 
-    char modelB_texturePath[] = "./assets/f22.png";
+    char modelA_path[] = "./assets/cube.obj"; 
+    char modelA_texturePath[] = "./assets/cube.png"; 
+    char modelB_path[] = "./assets/cube.obj"; 
+    char modelB_texturePath[] = "./assets/pikuma.png";
     
     coords_t modA_pos, modB_pos; 
     modA_pos.scale = vec3_new(1, 1, 1);
@@ -94,11 +94,13 @@ bool setup(void) {
     // Allocate the draw list for all polys << Can eat all of the heap
     // CHECK may be source of errors 
     g_polyCount = getTotalFaceCount();
+    /* Moved to static
     g_renderQueue = (triangle_t*)malloc(sizeof(triangle_t) * g_polyCount * 2); 
     if(!g_renderQueue) {
 		fprintf(stderr, "Error: not enough memory to process the model (polycount is too high).\n");
 		return false; 
 	}
+        */
     
     // Init view settings 
     float aspect_y = (float)getWindowHeight() / (float)getWindowWidth();
@@ -110,22 +112,15 @@ bool setup(void) {
     proj_matrix = mat4_make_perspective(fov_y, aspect_y, z_near, z_far);
     
     // Initialize frustum planes with a point and a normal
+
     initFrustumPlanes(fov_x, fov_y, z_near, z_far);  
-    
-    // .png Texture loading - OFF for testing
-    /*
-    if(!load_png_textureData(texturePath)) {
-			printf("Error: unable to open provided texture.\n Loading default..."); 
-			mesh_texture = (uint32_t*) REDBRICK_TEXTURE; // Load test texture (hardcoded)
-	}
-    */
     vec3_t lightOrigin = {0, 0, 1};
     vec3_t camOrigin = {0, 0, 0};
     vec3_t camDir = {0, 0, 1}; // look at positive Z
     initLight(lightOrigin);
     initCamera(camOrigin, camDir);  
-    // Set default config here
-    setRenderingMode(RENDER_WIRE_VERTEX);
+    // Set default config here 
+    setRenderingMode(RENDER_SOLID);
     setCullMethod(CULL_BACKFACE);
     setLightMethod(LIGHT_NONE);
     setControlMode(SPIN);   
@@ -258,6 +253,8 @@ void process_input(void) {
                         break;
                     }*/
                         setRenderingMode(RENDER_TEXTURED);
+                        setLightMethod(LIGHT_NONE);
+                        setCullMethod(CULL_BACKFACE);
                         break;
                 }
                 if(event.key.keysym.sym == SDLK_F8) { 
@@ -441,7 +438,6 @@ void update(void) {
                 result.texcoords[2].v = clippedTriangles[t].texcoords[2].v;  
                 result.color = currentFace.color;
                 result.texture = mesh->texture; 
-                
                 // Send the result to the pipeline 
                 if(g_triangleCounter < MAX_TRIANGLES) {
                     g_renderQueue[g_triangleCounter++] = result; 
@@ -496,6 +492,6 @@ void render(void) {
 
 
 void free_resources(void) {
-    if(g_renderQueue != NULL) free(g_renderQueue);
+    //if(g_renderQueue != NULL) free(g_renderQueue);
     freeMeshes();
 }

@@ -154,7 +154,7 @@ bool loadMeshTexture(char* pngTexFileName, mesh_t* mesh) {
 	if (png_texture != NULL) {
 		upng_decode(png_texture);
 		if(upng_get_error(png_texture) == UPNG_EOK) {
-			mesh->texture = (upng_t*) upng_get_buffer(png_texture);
+			mesh->texture = png_texture;//(upng_t*) upng_get_buffer(png_texture);
 			return true; 
 		}
 	}

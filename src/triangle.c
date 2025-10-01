@@ -5,8 +5,8 @@
 #include "display.h"
 #include "swap.h"
 
-// FIX ME: Move away from direct buffer addressing via getZbuffer() and return its position instead
- 
+
+// FIX ME:  texture drawing is really slow
 
 void fill_upper_half(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
     // y = mx + b - but inverse slope is needed
@@ -253,19 +253,14 @@ vec3_t computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p) {
 }
 
 
-void draw_texel(
-        int x, int y, upng_t* texture,
-        vec4_t* a, vec4_t* b, vec4_t* c,
-        float*  u0, float* v0, float* u1, float* v1,
-        float* u2, float* v2 
-) {
-    // TODO 
-    // fetch texture dimensions via upng
-    
+
+void draw_texel(int x, int y, upng_t* texture, vec4_t a, vec4_t b, vec4_t c,
+                                               tex2_t a_uv, tex2_t b_uv, tex2_t c_uv) 
+{
     // package xy compononets for barycentric weights computation
-	vec2_t a_xy = vec2_from_vec4(a);
-	vec2_t b_xy = vec2_from_vec4(b);
-	vec2_t c_xy = vec2_from_vec4(c); 
+	vec2_t a_xy = vec2_from_vec4(&a);
+	vec2_t b_xy = vec2_from_vec4(&b);
+	vec2_t c_xy = vec2_from_vec4(&c); 
 	
 	// compute weights relative to the point P (desired x & y screen pos)
     vec2_t pointP = {x, y};
@@ -279,28 +274,23 @@ void draw_texel(
     float interU, interV, interW_inverted; 
     
     // get interpolated uv coords, by weighing them with alpha, beta & gamma
-    interU = (*u0 / a->w) * alpha + (*u1 / b->w) * beta + (*u2 / c->w) * gamma; 
-    interV = (*v0 / a->w) * alpha + (*v1 / b->w) * beta + (*v2 / c->w) * gamma; 
+    interU = (a_uv.u / a.w) * alpha + (b_uv.u / b.w) * beta + (c_uv.u / c.w) * gamma; 
+    interV = (a_uv.v / a.w) * alpha + (b_uv.v / b.w) * beta + (c_uv.v / c.w) * gamma; 
     
 	// find interpolated 1/w
-	interW_inverted = (1 / a->w) * alpha + (1 / b->w) * beta + (1 / c->w) * gamma; 
+	interW_inverted = (1 / a.w) * alpha + (1 / b.w) * beta + (1 / c.w) * gamma; 
 	
 	// finally divide this back to undo the perspective distortion
 	interU /= interW_inverted;
 	interV /= interW_inverted; 
     // Fetch texture dimensions
     int textureWidth = upng_get_width(texture);
-    int textureHeight = upng_get_height(texture); 
+    int textureHeight = upng_get_height(texture);
+    printf("Tex W:%d Tex H:%d\n", textureWidth, textureHeight); 
     // scale uv to texture H x W 
     int textureX = abs((int)(interU * textureWidth)) % textureWidth; // can clamp here by % texture_width
     int textureY = abs((int)(interV * textureHeight)) % textureHeight; // can clamp here by % texture_height 
 
-	/* Note the clamp method can produce artifacts, i.e 
-	   (Polygon gaps: empty cracks on polygons, especially on triangles sharing edges.)
-	   Since fill conventions, rasterization rules, subpixel precision are not handled properly. 
-	*/
-	
-	
 	// adjust 1/w so that closer pixels have smaller component value
 	interW_inverted = 1.0 - interW_inverted; 
 	
@@ -308,14 +298,14 @@ void draw_texel(
 	if(interW_inverted < getZbufferAt(x, y)) {
 		uint32_t* texBuffer = (uint32_t*) upng_get_buffer(texture); 
 		// clamp the array index before passing to the draw_pixel % (texture_width * texture_height)
-		int texIndex = ((textureWidth * textureY) + textureX) ; 
+		int texIndex = ((textureWidth * textureY) + textureX) ;
+        printf("drawing tex at %d %d\n", x, y); 
 		draw_pixel(x, y, texBuffer[texIndex]);
 		// update Z buffer at a current position with the calculated 1/w
 		updateZbufferAt(x, y, interW_inverted); 
 	} 
 }
 
-// I am using round() in contrast to the lecture materials, might cause issues down the line
 void draw_textured_triangle(
         int x0, int y0, float z0, float w0, float u0, float v0,  
         int x1, int y1, float z1, float w1, float u1, float v1,       
@@ -362,15 +352,16 @@ void draw_textured_triangle(
   // put vertex data in vec4_t for later usage
   vec4_t a = {x0, y0, z0, w0};
   vec4_t b = {x1, y1, z1, w1};
-  vec4_t c = {x2, y2, z2, w2};   
+  vec4_t c = {x2, y2, z2, w2};
+  tex2_t a_uv = { u0, v0 };
+  tex2_t b_uv = { u1, v1 };
+  tex2_t c_uv = { u2, v2 };   
 
-    
   // UPPER HALF
   // We begin by finding slopes for left & right leg to determine how far we need to go
   // in Y direction, and then calculate start & end of the current scanline (xStart, Xend)
   // After we have correct coordinates, we loop the line pixel by pixel while grabbing texture colors
   // and assigning them to current pixel. 
-
 
   // determine inverse slope starting at y0 (topmost vertex) 
   float invSlope_L = 0;
@@ -384,15 +375,15 @@ void draw_textured_triangle(
   if(y1 - y0 != 0) {
    
     for(int y = y0;  y <= y1; y++) { 
-        int xStart = (x1 + (y - y1) * invSlope_L); // added rounding for consistency (same for bot)
+        int xStart = (x1 + (y - y1) * invSlope_L); 
         int xEnd = (x0 + (y - y0) * invSlope_R);  
     
         if(xEnd < xStart) int_swap(&xStart, &xEnd); // check if we are going L -> R swap otherwise
     
     // Note x <= xEnd
-        for(int x = xStart; x <= xEnd; x++) {
+        for(int x = xStart; x < xEnd; x++) {
             // grab texture data pixel by pixel
-             draw_texel(x, y, texture, &a, &b, &c, &u0, &v0, &u1, &v1, &u2, &v2);  
+             draw_texel(x, y, texture, a, b, c, a_uv, b_uv, c_uv);  
         }
     }  
   }
@@ -415,9 +406,9 @@ void draw_textured_triangle(
     
         if(xEnd < xStart) int_swap(&xStart, &xEnd); // check if we are going L -> R swap otherwise
     
-        for(int x = xStart; x <= xEnd; x++) {
+        for(int x = xStart; x < xEnd; x++) {
             // grab texture data pixel by pixel
-            draw_texel(x, y, texture, &a, &b, &c, &u0, &v0, &u1, &v1, &u2, &v2);  
+            draw_texel(x, y, texture, a, b, c, a_uv, b_uv, c_uv);  
         }
     }  
   }

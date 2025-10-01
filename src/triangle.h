@@ -39,8 +39,8 @@ void draw_textured_triangle(
         
 // draw correct pixel color based on uv coords mapped to the triangle_t
 void draw_texel(
-        int x, int y, upng_t* texture, vec4_t* a, vec4_t* b, vec4_t* c,
-        float*  u0, float* v0, float* u1, float* v1, float* u2, float* v2 ); 
+        int x, int y, upng_t* texture, vec4_t a, vec4_t b, vec4_t c,
+        tex2_t a_uv, tex2_t b_uv, tex2_t c_uv); 
 
 void draw_triangle_pixel(int x, int y, uint32_t color, vec4_t* vert_a, vec4_t* vert_b, vec4_t* vert_c); // helper function for draw_solid_triangle()
 vec3_t computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p) ; 
