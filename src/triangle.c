@@ -286,7 +286,6 @@ void draw_texel(int x, int y, upng_t* texture, vec4_t a, vec4_t b, vec4_t c,
     // Fetch texture dimensions
     int textureWidth = upng_get_width(texture);
     int textureHeight = upng_get_height(texture);
-    printf("Tex W:%d Tex H:%d\n", textureWidth, textureHeight); 
     // scale uv to texture H x W 
     int textureX = abs((int)(interU * textureWidth)) % textureWidth; // can clamp here by % texture_width
     int textureY = abs((int)(interV * textureHeight)) % textureHeight; // can clamp here by % texture_height 
@@ -298,8 +297,7 @@ void draw_texel(int x, int y, upng_t* texture, vec4_t a, vec4_t b, vec4_t c,
 	if(interW_inverted < getZbufferAt(x, y)) {
 		uint32_t* texBuffer = (uint32_t*) upng_get_buffer(texture); 
 		// clamp the array index before passing to the draw_pixel % (texture_width * texture_height)
-		int texIndex = ((textureWidth * textureY) + textureX) ;
-        printf("drawing tex at %d %d\n", x, y); 
+		int texIndex = ((textureWidth * textureY) + textureX);
 		draw_pixel(x, y, texBuffer[texIndex]);
 		// update Z buffer at a current position with the calculated 1/w
 		updateZbufferAt(x, y, interW_inverted); 
@@ -419,6 +417,20 @@ void swap_triangle_t(triangle_t* a, triangle_t* b) {
     triangle_t temp = *a;
     *a = *b;
     *b = temp; 
+}
+
+vec3_t getTriangleNormal(vec4_t* A, vec4_t* B, vec4_t* C) {
+    // convert from vec4
+    vec3_t a = vec3_from_vec4(A);
+    vec3_t b = vec3_from_vec4(B);
+    vec3_t c = vec3_from_vec4(C);
+    vec3_t ab = vec3_sub(&b, &a);
+    vec3_t ac = vec3_sub(&c, &a);
+    vec3_norm(&ab);
+    vec3_norm(&ac); 
+    vec3_t normal = vec3_cross(&ab, &ac);
+    vec3_norm(&normal);
+    return normal;         
 }
 
 

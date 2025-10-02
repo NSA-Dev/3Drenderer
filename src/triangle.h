@@ -43,6 +43,7 @@ void draw_texel(
         tex2_t a_uv, tex2_t b_uv, tex2_t c_uv); 
 
 void draw_triangle_pixel(int x, int y, uint32_t color, vec4_t* vert_a, vec4_t* vert_b, vec4_t* vert_c); // helper function for draw_solid_triangle()
-vec3_t computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p) ; 
+vec3_t computeBarycentric2D(vec2_t* a, vec2_t* b, vec2_t* c, vec2_t* p);
+vec3_t getTriangleNormal(vec4_t* A, vec4_t* B, vec4_t* C);  
 
 #endif

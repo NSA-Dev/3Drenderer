@@ -29,8 +29,8 @@ bool init_window(void) {
     /* Query display's video mode from main(0) display */
     SDL_DisplayMode display_mode;
     if(!SDL_GetCurrentDisplayMode(0, &display_mode)) {
-        win_w = display_mode.w;
-        win_h = display_mode.h;
+        win_w = display_mode.w; 
+        win_h = display_mode.h; 
     }
     /* Handle window creation */
     window = SDL_CreateWindow(
@@ -39,8 +39,11 @@ bool init_window(void) {
             SDL_WINDOWPOS_CENTERED, // pos Y
             win_w,                  // width
             win_h,                  // height
-            SDL_WINDOW_BORDERLESS   // winMode                    
+            SDL_WINDOW_FULLSCREEN   // winMode                    
     );
+    // Lower actual rendering resolution so we could draw textures and have reasonable FPS 
+    win_w /= 2;
+    win_h /= 2;
     
     if(!window) {
         fprintf(stderr, "Error creating SDL window.\n");

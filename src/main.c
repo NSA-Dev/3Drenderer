@@ -17,10 +17,10 @@
 #include "clipping.h"
 #define  R_LIMIT (2 * 3.14159265) // rotation limit for view controls
 #define  PI_CONST 3.14159
-#define BUDGET 10000
+#define TRIANGLE_LIMIT 10000
 mat4_t g_viewMatrix;
 mat4_t g_worldMatrix; 
-triangle_t g_renderQueue[BUDGET]; 
+triangle_t g_renderQueue[TRIANGLE_LIMIT]; 
 uint32_t g_polyCount  = 0;
 uint32_t g_triangleCounter = 0; 
 bool is_running = false;
@@ -62,22 +62,24 @@ int main(void) {
 
 
 bool setup(void) {
-
-    // TODO: get rid of these globals after testing is done 
     // Test variables
-    char modelA_path[] = "./assets/cube.obj"; 
-    char modelA_texturePath[] = "./assets/cube.png"; 
-    char modelB_path[] = "./assets/cube.obj"; 
-    char modelB_texturePath[] = "./assets/pikuma.png";
-    
-    coords_t modA_pos, modB_pos; 
+    char modelA_path[] = "./assets/crab.obj"; 
+    char modelA_texturePath[] = "./assets/crab.png"; 
+    char modelB_path[] = "./assets/crab.obj"; 
+    char modelB_texturePath[] = "./assets/crab.png";
+    char modelC_path[] = "./assets/crab.obj"; 
+    char modelC_texturePath[] = "./assets/crab.png";
+
+    coords_t modA_pos, modB_pos, modC_pos; 
     modA_pos.scale = vec3_new(1, 1, 1);
     modA_pos.translation = vec3_new(-3, 0, +8);
     modA_pos.rotation = vec3_new(0, 0, 0);
     modB_pos.scale = vec3_new(1, 1, 1);
     modB_pos.translation = vec3_new(+3, 0, +8); 
-    modB_pos.rotation = vec3_new(0, 0, 0);   
-
+    modB_pos.rotation = vec3_new(0, 0, 0);
+    modC_pos.scale = vec3_new(1, 1, 1);
+    modC_pos.translation = vec3_new(0, 0, +8); 
+    modC_pos.rotation = vec3_new(0, 0, 0);  
 
     // Multiple assets test
     if(!loadMesh(modelA_path, modelA_texturePath, modA_pos.scale, modA_pos.translation, modA_pos.rotation)) {
@@ -89,19 +91,16 @@ bool setup(void) {
         printf("Error: unable to read specified .obj file.\n");
         printf("Loading default model...\n");  
         loadDefaultCube(); 
-    }  
+    }
 
-    // Allocate the draw list for all polys << Can eat all of the heap
-    // CHECK may be source of errors 
+    if(!loadMesh(modelC_path, modelC_texturePath, modC_pos.scale, modC_pos.translation, modC_pos.rotation)) {
+        printf("Error: unable to read specified .obj file.\n");
+        printf("Loading default model...\n");  
+        loadDefaultCube(); 
+    }
+
     g_polyCount = getTotalFaceCount();
-    /* Moved to static
-    g_renderQueue = (triangle_t*)malloc(sizeof(triangle_t) * g_polyCount * 2); 
-    if(!g_renderQueue) {
-		fprintf(stderr, "Error: not enough memory to process the model (polycount is too high).\n");
-		return false; 
-	}
-        */
-    
+
     // Init view settings 
     float aspect_y = (float)getWindowHeight() / (float)getWindowWidth();
     float aspect_x = (float)getWindowWidth() / (float)getWindowHeight();
@@ -142,35 +141,6 @@ void process_input(void) {
                     is_running = false;
                     break;
                 }
-                // Disabled due to multiple meshes Mesh controls
-                /*
-                if(currentControlMode == MESH) {
-                if (event.key.keysym.sym == SDLK_LEFT) {
-                    mesh.rotation.y += MESH_ROTATION_FACTOR * g_deltaTime;
-                    break;
-                }
-                if(event.key.keysym.sym == SDLK_RIGHT) {
-                    mesh.rotation.y -= MESH_ROTATION_FACTOR * g_deltaTime;
-                    break;
-                }
-                if (event.key.keysym.sym == SDLK_UP) {
-                    mesh.rotation.x += MESH_ROTATION_FACTOR * g_deltaTime;
-                    break;
-                }
-                if(event.key.keysym.sym == SDLK_DOWN) {
-                    mesh.rotation.x -= MESH_ROTATION_FACTOR * g_deltaTime;
-                    break;
-                }
-                // stretch the mesh
-                if(event.key.keysym.sym == SDLK_q) {
-                    mesh.scale.x += MESH_SCALE_FACTOR * g_deltaTime;
-                    break;
-                } 
-                if(event.key.keysym.sym == SDLK_e) {
-                    mesh.scale.x -= MESH_SCALE_FACTOR * g_deltaTime;
-                    break;
-                } 
-                }*/
                 // Camera controls 
                 if(event.key.keysym.sym == SDLK_KP_PLUS) {
                     adjustCameraPitch(CAM_PITCH_FACTOR * g_deltaTime);
@@ -246,12 +216,6 @@ void process_input(void) {
                     break;       
                 }    
                 if(event.key.keysym.sym == SDLK_F7) {
-                    // Disabled for Testing
-                    /*
-                    if(mesh_texture != NULL) {   
-                        setRenderingMode(RENDER_TEXTURED);
-                        break;
-                    }*/
                         setRenderingMode(RENDER_TEXTURED);
                         setLightMethod(LIGHT_NONE);
                         setCullMethod(CULL_BACKFACE);
@@ -363,32 +327,21 @@ void update(void) {
                 currentVertex = mat4_mult_vec4(&g_viewMatrix, &currentVertex); // translate to Camera space 
                 transformed[j] = currentVertex; 
             }  
-            
+
             // Compute normal from resulting transformed face vertices 
-            // Indexing: A - 0 ,  B - 1, C - 2
-            vec3_t A, B, C, AB, AC, normal;
-            A = vec3_from_vec4(&transformed[0]);
-            B = vec3_from_vec4(&transformed[1]);
-            C = vec3_from_vec4(&transformed[2]);
-            AB = vec3_sub(&B, &A);
-            AC = vec3_sub(&C, &A);
-            vec3_norm(&AB);
-            vec3_norm(&AC); 
-            normal = vec3_cross(&AB, &AC);
-            vec3_norm(&normal);
-            
+            vec3_t faceNormal = getTriangleNormal(&transformed[0], &transformed[1], &transformed[2]);
             // Perform Backface culling if needed
             if(currentCulling == CULL_BACKFACE) {
-            vec3_t origin = { 0, 0, 0 };
-            vec3_t cameraRay = vec3_sub(&origin, &A);
-            float alignmentFactor = vec3_dot(&normal, &cameraRay);
-            if(alignmentFactor < 0) continue;  
+                vec3_t origin = { 0, 0, 0 };
+                vec3_t cameraRay = vec3_sub(&origin, &transformed[0]);
+                float alignmentFactor = vec3_dot(&faceNormal, &cameraRay);
+                if(alignmentFactor < 0) continue;  
             }
 
             // Lighting
             if(currentLight == LIGHT_BASIC) {
                     vec3_t lightDirection = getLightDirection();
-                    float ray_alignment = -vec3_dot(&normal, &lightDirection); 
+                    float ray_alignment = -vec3_dot(&faceNormal, &lightDirection); 
                     currentFace.color = light_apply_intensity(currentFace.color, ray_alignment); 
             }
 
@@ -398,7 +351,6 @@ void update(void) {
             pA = vec3_from_vec4(&transformed[0]);
             pB = vec3_from_vec4(&transformed[1]); 
             pC = vec3_from_vec4(&transformed[2]);
-            // FIX ME: pass mesh_face.*_uv
             polygon = createPolygon(&pA, &pB, &pC, currentFace.a_uv, currentFace.b_uv, currentFace.c_uv); 
             clipPolygon(&polygon);
             
@@ -492,6 +444,6 @@ void render(void) {
 
 
 void free_resources(void) {
-    //if(g_renderQueue != NULL) free(g_renderQueue);
     freeMeshes();
+    destroy_window();
 }
